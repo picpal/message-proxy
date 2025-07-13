@@ -1,0 +1,15 @@
+/* maven nexus used settings */
+pluginManagement {
+    repositories {
+        maven {
+            allowInsecureProtocol true
+            credentials {
+                username 'maven'
+                password 'maven123'
+            }
+            url 'http://210.92.129.251:8081/repository/maven-public/'
+        }
+    }
+}
+
+rootProject.name = 'message-gate'

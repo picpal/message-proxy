@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!--
+    SQL File Name : lgu_v2_message_sql.xml
+    Description : 메시지 발송 데이터 관리
+    author 451773
+    since 2024. 01. 19.
+    version 1.0
+    Modification Information
+        since        author            description
+    ===========    =============    ===========================
+    2024.01.19        451773         최초 생성
+-->
+
+<mapper namespace="com.bwc.message.v1.sender.dao.lgu.v2.LguV2MessageDAO">
+
+    <!--
+        Query ID : insertSendMessage
+        Description : 메시지 발송 요청
+    -->
+    <insert id="insertSendSmsMessage" parameterType="com.bwc.message.v1.gate.dto.MessageGateSendReqDTO">
+        /*com.bwc.message.v1.sender.dao.lgu.v2.LguV2MessageDAO.insertSendSmsMessage*/
+        INSERT INTO UMS_MSG (CLIENT_KEY,
+                             REQ_CH,
+                             TRAFFIC_TYPE,
+                             MSG_STATUS,
+                             REQ_DATE,
+                             CALLBACK_NUMBER,
+                             PHONE,
+                             MSG,
+                             TITLE,
+                             ETC1,
+                             ETC2)
+        VALUES (#{sendUid},
+                #{sendType},
+                'normal',
+                'ready',
+                SYSDATE,
+                #{senderNumber},
+                #{receiverPhone},
+                #{sendMsg},
+                #{subject},
+                #{serviceCode},
+                #{sessGuid})
+    </insert>
+
+
+    <!--
+        Query ID : selectSmsMessageStatus
+        Description : 메시지 발송 상태 조회
+        파라미터 선언에서 $ type을 사용한 이유 : 로그테이블이 월별로 생성되어 table명이 동적이다.
+        이 때문에 sqlInjection 취약점으로 나타날순 있으나, 앞서 table name을 처리하는 과정이 VO에서 캡슐화되어 있고,
+        유효한 테이블 명만 반환 하는 형태로 되어 있음.
+     -->
+    <select id="selectSmsMessageStatus" resultType="com.bwc.message.v1.sender.vo.MessageStatusVO"
+            parameterType="com.bwc.message.v1.sender.vo.MessageStatusVO">
+        /*com.bwc.message.v1.sender.dao.lgu.v2.LguV2MessageDAO.selectSmsMessageStatus*/
+        SELECT REQ_CH,
+               STATUS,
+               RESLUT_CODE,
+               RESULT_MSG,
+               #{serviceCode} AS SERVICE_CODE,
+               #{sendUid}     AS SEND_UID,
+               #{sessGuid}    AS SESS_GUID,
+               #{sendDate}    AS SEND_DATE,
+               #{sendType}    AS SEND_TYPE,
+               #{vender}      AS VENDER
+        FROM (SELECT REQ_CH,
+                     MSG_STATUS     AS STATUS,
+                     DONE_CODE      AS RESLUT_CODE,
+                     DONE_CODE_DESC AS RESULT_MSG
+              FROM UMS_MSG
+              WHERE CLIENT_KEY = #{sendUid}
+                AND ETC1 = #{serviceCode}
+                AND ETC2 = #{sessGuid}
+                AND TO_CHAR(REQ_DATE, 'YYYYMMDD') = #{sendDate}
+
+              UNION ALL
+              SELECT REQ_CH,
+                     MSG_STATUS     AS STATUS,
+                     DONE_CODE      AS RESLUT_CODE,
+                     DONE_CODE_DESC AS RESULT_MSG
+              FROM ${table}
+              WHERE CLIENT_KEY = #{sendUid}
+                AND ETC1 = #{serviceCode}
+                AND ETC2 = #{sessGuid}
+                AND TO_CHAR(REQ_DATE, 'YYYYMMDD') = #{sendDate})
+    </select>
+
+
+</mapper>

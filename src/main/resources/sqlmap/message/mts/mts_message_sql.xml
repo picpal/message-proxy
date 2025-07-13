@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!--
+    SQL File Name : mts_message_sql.xml
+    Description : 메시지 발송 데이터 관리
+    author 451773
+    since 2024. 01. 19.
+    version 1.0
+    Modification Information
+        since        author            description
+    ===========    =============    ===========================
+    2024.01.19        451773         최초 생성
+-->
+
+<mapper namespace="com.bwc.message.v1.sender.dao.mts.MtsMessageDAO">
+
+    <!-- 
+        Query ID : insertSendSmsMessage
+        Description : 메시지 발송 [SMS]
+     -->
+    <insert id="insertSendSmsMessage" parameterType="com.bwc.message.v1.gate.dto.MessageGateSendReqDTO">
+        /*com.bwc.message.v1.sender.dao.mts.MtsMessageDAO.insertSendSmsMessage*/
+        INSERT INTO TB_MTS_SMS_MSG
+        ( TRAN_PR /* MSG key 고유값 (시퀀스 생성필요)*/
+        , TRAN_ID /*정산구분코드*/
+        , TRAN_PHONE /*수신번호*/
+        , TRAN_CALLBACK /*회신번호*/
+        , TRAN_MSG /*전송메세지*/
+        , TRAN_DATE /*전송요청시간*/
+        , TRAN_TYPE /* SMS : 0*/
+        , TRAN_STATUS /* 1:전송 2:MTS전송완료 3:수신완료 5:SendError 6:내부버퍼삽입완료 */
+        , SYS_DB_IN_TIME /*DB 입력 시간*/
+        , SYS_DB_IN_ID /*DB 입력 서비스*/
+        , TRAN_ETC1 /*기타1 : 고유번호 사용*/
+        , TRAN_ETC2 /*기타1 : 메시지 발송 고유키*/
+        )
+        VALUES ( SQ_TRAN_PR.NEXTVAL
+               , ''
+               , #{receiverPhone}
+               , #{senderNumber}
+               , #{sendMsg}
+               , sysdate
+               , 0
+               , '1'
+               , sysdate
+               , #{serviceCode}
+               , #{sendUid}
+               , #{sessGuid})
+
+    </insert>
+
+    <!--
+        Query ID : insertSendMmsMessage
+        Description : 메시지 발송 [MMS]
+     -->
+    <insert id="insertSendMmsMessage" parameterType="com.bwc.message.v1.gate.dto.MessageGateSendReqDTO">
+        /*com.bwc.message.v1.sender.dao.mts.MtsMessageDAO.insertSendMmsMessage*/
+        INSERT INTO TB_MTS_MMS_MSG
+        ( TRAN_PR /* MSG key 고유값 (시퀀스 생성필요)*/
+        , TRAN_ID /*정산구분코드*/
+        , TRAN_PHONE /*수신번호*/
+        , TRAN_CALLBACK /*회신번호*/
+        , TRAN_SUBJECT /*메시지 제목*/
+        , TRAN_MSG /*전송메세지*/
+        , TRAN_DATE /*전송요청시간*/
+        , TRAN_TYPE /* MMS : 4*/
+        , TRAN_STATUS /* 1:전송 2:MTS전송완료 3:수신완료 5:SendError 6:내부버퍼삽입완료 */
+        , SYS_DB_IN_TIME /*DB 입력 시간*/
+        , SYS_DB_IN_ID /*DB 입력 서비스*/
+        , TRAN_ETC1 /*기타1 : 고유번호 사용*/
+        , TRAN_ETC2 /*기타1 : 메시지 발송 고유키*/
+        )
+        VALUES ( SQ_TRAN_PR.NEXTVAL
+               , ''
+               , #{receiverPhone}
+               , #{senderNumber}
+               , #{subject}
+               , #{sendMsg}
+               , sysdate
+               , 4
+               , '1'
+               , sysdate
+               , #{serviceCode}
+               , #{sendUid}
+               , #{sessGuid})
+    </insert>
+
+    <!--
+        Query ID : selectSmsMessageStatus
+        Description : 메시지 발송 상태 조회
+    -->
+    <select id="selectSmsMessageStatus" resultType="com.bwc.message.v1.sender.vo.MessageStatusVO"
+            parameterType="com.bwc.message.v1.sender.vo.MessageStatusVO">
+        /*com.bwc.message.v1.sender.dao.mts.MtsMessageDAO.selectSmsMessageStatus*/
+        SELECT STATUS,
+               #{serviceCode} AS SERVICE_CODE,
+               #{sendUid}     AS SEND_UID,
+               #{sessGuid}    AS SESS_GUID,
+               #{sendDate}    AS SEND_DATE,
+               #{sendType}    AS SEND_TYPE,
+               #{vender}      AS VENDER
+        FROM (select A.TRAN_STATUS AS STATUS
+              from TB_MTS_SMS_MSG A
+              where A.SYS_DB_IN_ID = #{serviceCode}
+                and A.TRAN_ETC1 = #{sendUid}
+                and A.TRAN_ETC2 = #{sessGuid}
+                and TO_CHAR(A.TRAN_DATE, 'YYYYMMDD') = #{sendDate}
+
+              UNION ALL
+              select A.TRAN_STATUS AS STATUS
+              from TB_MTS_SMS_MSG_LOG A
+              where A.SYS_DB_IN_ID = #{serviceCode}
+                and A.TRAN_ETC1 = #{sendUid}
+                and A.TRAN_ETC2 = #{sessGuid}
+                and TO_CHAR(A.TRAN_DATE, 'YYYYMMDD') = #{sendDate})
+    </select>
+
+    <!--
+        Query ID : selectMmsMessageStatus
+        Description : 메시지 발송 상태 조회
+    -->
+    <select id="selectMmsMessageStatus" resultType="com.bwc.message.v1.sender.vo.MessageStatusVO"
+            parameterType="com.bwc.message.v1.sender.vo.MessageStatusVO">
+        /*com.bwc.message.v1.sender.dao.lgu.v2.LguV2MessageDAO.selectMmsMessageStatus*/
+        SELECT STATUS,
+               #{serviceCode} AS SERVICE_CODE,
+               #{sendUid}     AS SEND_UID,
+               #{sessGuid}    AS SESS_GUID,
+               #{sendDate}    AS SEND_DATE,
+               #{sendType}    AS SEND_TYPE,
+               #{vender}      AS VENDER
+        FROM (SELECT A.TRAN_STATUS AS STATUS
+              FROM TB_MTS_MMS_MSG A
+              WHERE A.SYS_DB_IN_ID = #{serviceCode}
+                AND A.TRAN_ETC1 = #{sendUid}
+                AND A.TRAN_ETC2 = #{sessGuid}
+                AND TO_CHAR(A.TRAN_DATE, 'YYYYMMDD') = #{sendDate}
+
+              UNION ALL
+              SELECT A.TRAN_STATUS AS STATUS
+              FROM TB_MTS_MMS_MSG_LOG A
+              WHERE A.SYS_DB_IN_ID = #{serviceCode}
+                AND A.TRAN_ETC1 = #{sendUid}
+                AND A.TRAN_ETC2 = #{sessGuid}
+                AND TO_CHAR(A.TRAN_DATE, 'YYYYMMDD') = #{sendDate})
+    </select>
+
+
+</mapper>

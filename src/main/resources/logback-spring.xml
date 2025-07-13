@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="LOG_PREFIX" value="msggate"></property>
+    <property name="LOG_DIR" value="/applog/msggate/"></property>
+
+    <!-- class만 따로 지정해서 이 클래스만 로그를 따로 관리할 수 있다. LoginInterceptor class 파일만 따로 로그 관리 -->
+    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${LOG_PREFIX}.log</file>1111
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/archived/${LOG_PREFIX}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- 10MB , 24시간 기준 -->
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!-- 최대 보관 기간 : 1년 -->
+            <maxHistory>365</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>
+                ▶ %-5level %d{HH:mm:ss.SSS} [%thread] %logger[%method:%line] - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!-- file로 log 남기기 -->
+    <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${LOG_PREFIX}_error.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/archived/${LOG_PREFIX}_error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- 10MB , 24시간 기준 -->
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!-- 최대 보관 기간 : 1년 -->
+            <maxHistory>365</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>
+                ▶ %-5level %d{HH:mm:ss.SSS} [%thread] %logger[%method:%line] - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!-- console로 log 남기기 -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>
+                ▶ %-12.12d [%21.21t] %5p %50.50C:%4.4L - %m%n
+            </pattern>
+        </encoder>
+    </appender>
+    <appender name="consoleForLoginInterceptor" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>
+                ▷ %-12.12d [%21.21t] %5p %50.50C:%4.4L - %m%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!-- Log Level -->
+    <root level="debug">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </root>
+
+    <logger name="org.springframework" level="info"/>
+
+    <!-- Log print setting   -->
+    <!-- SQL 실행시 수행 시간 -->
+
+    <logger name="jdbc" level="OFF" additivity="false"/>
+    <!-- SQL 문 , SQL문 수행 시간 출력   -->
+    <logger name="jdbc.sqltiming" level="OFF" additivity="false">
+        <appender-ref ref="console"/>
+    </logger>
+    <!-- SQL문만 로그로 출력, PreparedStatement의 경우 관련된 argument 값으로 대채된 SQL 출력   -->
+    <logger name="jdbc.sqlonly" level="OFF"/>
+    <!-- Resultset을 제외한 모든 JDBC 호출 정보 출력 : 로그량 많음   -->
+    <logger name="jdbc.audit" level="OFF"/>
+    <!-- Resultset을 포함한 모든 JDBC 호출 정보 출력 : 로그량 많음   -->
+    <logger name="jdbc.resultset" level="OFF"/>
+    <!-- SQL 수행 결과를 테이블 형태로 출력 : 로그량 많음 -->
+    <logger name="jdbc.resultsettable" level="OFF"/>
+    <!-- DB 연결, 해제와 관련된 로그 출력 -->
+    <logger name="jdbc.connection" level="OFF"/>
+
+    <logger name="egovframework" level="debug" additivity="false">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </logger>
+
+    <logger name="org.terracotta" level="ERROR" additivity="false">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+        <appender-ref ref="ERROR"/>
+    </logger>
+
+    <logger name="com.jayway" level="ERROR" additivity="false">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+        <appender-ref ref="ERROR"/>
+    </logger>
+
+    <logger name="org.mybatis" level="ERROR" additivity="false">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+        <appender-ref ref="ERROR"/>
+    </logger>
+
+    <logger name="org.springframework.web.conn" level="INFO" additivity="false">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </logger>
+
+    <logger name="org.apache.http" level="INFO" additivity="false">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </logger>
+
+    <logger name="org.quartz" level="INFO" additivity="false">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </logger>
+
+    <logger name="com.hiot" level="DEBUG" additivity="false">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </logger>
+
+    <logger name="dao" level="DEBUG" additivity="false">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </logger>
+
+</configuration>

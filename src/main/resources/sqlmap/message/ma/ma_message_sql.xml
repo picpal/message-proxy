@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!--
+    SQL File Name : ma_message_sql.xml
+    Description : 메시지 발송 데이터 관리
+    author 451773
+    since 2024. 01. 19.
+    version 1.0
+    Modification Information
+        since        author            description
+    ===========    =============    ===========================
+    2024.01.19        451773         최초 생성
+-->
+
+<mapper namespace="com.bwc.message.v1.gate.dao.MaMessageDAO">
+
+    <!--
+        Query ID : insertSendMessageOrigin
+        Description : 메시지 업체 발송 데이터 로그 저장
+     -->
+    <insert id="insertSendMessageOrigin" parameterType="com.bwc.message.v1.gate.dto.MessageGateSendReqDTO">
+        /*com.bwc.message.v1.sender.dao.mts.MtsMessageDAO.insertSendMessageOrigin*/
+        insert into TB_MG_MESSAGE_LOG( SESS_GUID
+                                     , SEND_UID
+                                     , SERVICE_CODE
+                                     , SEND_DATE
+                                     , SEND_TIME
+                                     , SEND_TYPE
+                                     , STATUS
+                                     , RECEIVER_PHONE
+                                     , SENDER_NUMBER
+                                     , VENDER
+                                     , TEMPLATE_CODE
+                                     , RESEND_COUNT
+                                     , FST_REG_DTTM
+                                     , FST_RGNT_NO)
+        values ( #{sessGuid}
+               , #{sendUid}
+               , #{serviceCode}
+               , TO_CHAR(SYSDATE, 'YYYYMMDD')
+               , TO_CHAR(SYSDATE, 'HH24MISS')
+               , #{sendType}
+               , '01'
+               , #{receiverPhone}
+               , #{senderNumber}
+               , #{vender}
+               , #{templateCode}
+               , 0
+               , SYSDATE
+               , #{serviceCode})
+
+    </insert>
+
+
+    <!-- 
+        Query ID : selectMessageMapping
+        Description : 서비스별 메시지 발송 업체 맵핑 정보 조회
+     -->
+    <select id="selectMessageMapping" resultType="String"
+            parameterType="com.bwc.message.v1.gate.dto.MessageGateSendReqDTO">
+        /*com.bwc.message.v1.gate.dao.MaMessageDAO.selectMessageMapping*/
+        select VENDER
+        from TB_MG_SERVICE_LNK
+        where SERVICE_CODE = #{serviceCode}
+    </select>
+
+    <!--
+    Query ID : selectMessageLog
+    Description : 메시지 발송 상태 조회
+ -->
+    <select id="selectSendMessageInfo" resultType="com.bwc.message.v1.gate.dto.MessageGateStatusResDTO"
+            parameterType="com.bwc.message.v1.gate.dto.MessageGateStatusReqDTO">
+        /*com.bwc.message.v1.gate.dao.MaMessageDAO.selectSendMessageInfo*/
+        select SESS_GUID
+             , SEND_UID
+             , SEND_TYPE
+             , SEND_DATE
+             , SERVICE_CODE
+             , VENDER
+             , STATUS
+        From TB_MG_MESSAGE_LOG
+        where SEND_UID = #{sendUid}
+          and SERVICE_CODE = #{serviceCode}
+          and SEND_DATE = #{sendDate}
+    </select>
+
+    <!--
+        Query ID : selectMessageLog
+        Description : 메시지 발송 로그 조회
+     -->
+    <select id="selectMessageLog" resultType="HMap" parameterType="org.quartz.JobDataMap">
+        /*com.bwc.message.v1.gate.dao.MaMessageDAO.selectMessageLog*/
+        select RESEND_COUNT
+             , SERVICE_CODE
+        From TB_MG_MESSAGE_LOG
+        where SESS_GUID = #{sessGuid}
+          and SEND_UID = #{sendUid}
+          and SERVICE_CODE = #{serviceCode}
+          and VENDER = #{vender}
+          and SEND_DATE = #{sendDate}
+    </select>
+
+
+    <!--
+        Query ID : updateCheckCount
+        Description : 메시지 상태 체크 횟수 변경
+     -->
+    <update id="updateCheckCount" parameterType="org.quartz.JobDataMap">
+        /*com.bwc.message.v1.gate.dao.MaMessageDAO.updateCheckCount*/
+        UPDATE TB_MG_MESSAGE_LOG
+        SET RESEND_COUNT   = RESEND_COUNT + 1
+          , LAST_CHNG_DTTM = SYSDATE
+          , LAST_CHGR_NO   = #{serviceCode}
+        where SESS_GUID = #{sessGuid}
+          and SEND_UID = #{sendUid}
+          and SERVICE_CODE = #{serviceCode}
+          and VENDER = #{vender}
+          and SEND_DATE = #{sendDate}
+    </update>
+
+
+    <!--
+        Query ID : updateSendStatus
+        Description : 메시지 상태 변경
+     -->
+    <update id="updateSendStatus" parameterType="com.bwc.message.v1.sender.vo.MessageStatusVO">
+        /*com.bwc.message.v1.gate.dao.MaMessageDAO.updateSendStatus*/
+        UPDATE TB_MG_MESSAGE_LOG
+        SET STATUS         = #{status}
+          , LAST_CHNG_DTTM = SYSDATE
+          , LAST_CHGR_NO   = #{serviceCode}
+        where SESS_GUID = #{sessGuid}
+          and SEND_UID = #{sendUid}
+          and SERVICE_CODE = #{serviceCode}
+          and VENDER = #{vender}
+          and SEND_DATE = #{sendDate}
+    </update>
+
+
+    <!--
+    Query ID : insertCnncLog
+    Description : 접속 로그 저장
+ -->
+    <update id="insertCnncLog" parameterType="com.bwc.message.v1.sender.vo.MessageStatusVO">
+        /*com.bwc.message.v1.gate.dao.MaMessageDAO.insertCnncLog*/
+
+    </update>
+
+    <!--
+    Query ID : updateCnncLog
+    Description : 접속 로그 결과 수정
+ -->
+    <update id="updateCnncLog" parameterType="com.bwc.message.v1.sender.vo.MessageStatusVO">
+        /*com.bwc.message.v1.gate.dao.MaMessageDAO.updateCnncLog*/
+        update TB_MG_CNNC_LOG
+        set RSLT_CD  = #{resultCode}
+          , RSLT_MSG = #{resultMsg}
+        where SESS_GUID = #{sessGuid}
+          and CNNC_DATE
+            > TO_CHAR(sysdate
+                  , 'YYYYMMDD')
+
+    </update>
+
+
+</mapper>

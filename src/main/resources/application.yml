@@ -1,0 +1,73 @@
+server:
+  shutdown: graceful # kill -15(-9 안됨)를 이용하여 shutdown. (진행 중인 프로세스는 처리되고, 신규 유입 connection은 차단)
+
+# spring.profiles.active에 대한 설정은 서버 기동시 변수로 전달 받아서 처리
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 5s # default 5초 (서비스 성격에 따라 로직 처리 시간 고려하여 설정 )
+
+  #######################################################
+  # *********** quartz scheduler **********
+  #######################################################
+  quartz:
+    job-store-type: memory
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: SchedulerFactoryBean
+            instanceId: AUTO
+
+
+#######################################################
+# *********** mybatis mapper settings ***********
+#######################################################
+mybatis:
+  mapper-locations: classpath:/sqlmap/**/*_sql.xml
+  config-location: classpath:/sqlmap/sql-mapper-config.xml
+
+
+#######################################################
+# *********** Actuator Security settings ***********
+#######################################################
+management:
+  endpoints:
+    # Actuator \uBAA8\uB4E0 \uC811\uADFC\uCC28\uB2E8
+    jmx:
+      exposure:
+        exclude: "*"
+    web:
+      exposure:
+        # \uC0AC\uC6A9 \uAC00\uB2A5\uD55C endpoint
+        include:
+          - "info"
+          - "health"
+
+    # Use other port for Actuator
+    server:
+    #      port: [port number]
+
+
+#######################################################
+# *********** common prefixs ***********
+#######################################################
+trx:
+  guid:
+    prifix: B
+
+#######################################################
+# *********** Swagger UI ***********
+#######################################################
+springdoc:
+  default-consumes-media-type: application/json;charset=UTF-8
+  default-produces-media-type: application/json;charset=UTF-8
+  swagger-ui:
+    url: /docs/messagegate-api-3.0.1.json
+    path: /docs/swagger
+
+
+#######################################################
+# *********** crypt key ***********
+#######################################################
+app:
+  enckey: ENC(wR5/TCUi4RxoN7ctYEOEqLQElXbdusMeKE1Z9+R4mil8TaW+tcPDB4RWIPOT9ZqkwHaFrS19/ECyh5TzcgLMjQ==)

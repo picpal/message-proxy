@@ -1,0 +1,85 @@
+#######################################################
+# *********** System env ***********
+#######################################################
+sys:
+  env:
+    cd: D
+
+server:
+  port: 5001
+  error:
+    whitelabel:
+      enabled: false
+  servlet:
+    encoding:
+      force-response: true
+
+#######################################################
+# *********** crypt key ***********
+#######################################################
+app:
+  enckey: ENC(wR5/TCUi4RxoN7ctYEOEqLQElXbdusMeKE1Z9+R4mil8TaW+tcPDB4RWIPOT9ZqkwHaFrS19/ECyh5TzcgLMjQ==)
+
+
+#######################################################
+# *********** pid3 ***********
+#######################################################
+spring:
+  pid:
+    file: /apprun/msggate/msggate.pid
+
+  #######################################################
+  # *********** datasource settings ***********
+  #######################################################
+  ma-datasource:
+    datasource:
+      hikari:
+        driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+        jdbc-url: jdbc:log4jdbc:oracle:thin:@10.206.248.11:11521:BDSP
+        username: ENC(4Oh/6zlMRNLCZDlEwS0A5A3zdRJ995Gvcs9hsglJHUxTY1OdxLmOPxAuURwrgAII)
+        password: ENC(dm791v+kXMG9q6UUSAkhzk76yRfVXJ5gpq4O3ttiwcVDgnO4KuQ0K9Dd1cw4L6ax)
+        connection-test-query: SELECT 1 FROM DUAL
+        minimum-idle: 10
+        maximum-pool-size: 10
+
+  mts-datasource:
+    datasource:
+      hikari:
+        driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+        jdbc-url: jdbc:log4jdbc:oracle:thin:@10.206.248.11:11521:BDSP
+        username: ENC(MkEVcEXdCEIJe9JRilpNcEOLoCQcM3CTArlXHjuCPEzJHdpa/04SulU2yqgZpevj)
+        password: ENC(px9lfvMhJ0DfXsPb4dqdZJhorkZXnsWPZK6izKiOWklE+tqn5ClOvTh+ZCKt9r7v)
+        connection-test-query: SELECT 1 FROM DUAL
+        minimum-idle: 10
+        maximum-pool-size: 10
+
+  lgu-v1-datasource:
+    datasource:
+      hikari:
+        driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+        jdbc-url: jdbc:sqlserver://10.206.231.200:1433;DatabaseName=sms;encrypt=false;trustServerCertificate=true;
+        username: ENC(DoBnjOeKP3TZ53010EBuBIiqj0vTsjDVZE+yIQ8u9WnH8zrLC8+BTiIcxZoyiUOK)
+        password: ENC(02QsjBwbz3WfDYUG9mr2mxiaPgFMvLKzu51LfqHrq/6ro4WK3oYDQfxCKdY4ZXA7)
+        connection-test-query: SELECT 1
+        minimum-idle: 10
+        maximum-pool-size: 10
+
+  lgu-v2-datasource:
+    datasource:
+      hikari:
+        driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+        jdbc-url: jdbc:log4jdbc:oracle:thin:@10.206.248.11:11521:BDSP
+        username: ENC(KkO1MsE74KzEpCjys5i1BVoWOsJnVJkmfDLoclppGHJ9oMnvdzWwZ198UIS5oyrH)
+        password: ENC(09CnSZop+Ji7bMKtv9Omoarp2qHOAbH852aq8pLh9kKnpnenzJdy/oSE4Qi3use5)
+        connection-test-query: SELECT 1 FROM DUAL
+        minimum-idle: 10
+        maximum-pool-size: 10
+
+#######################################################
+# *********** hikari logging ***********
+# configuration 정보가 필요한 경우만 DEBUG로 변경
+#######################################################
+logging:
+  level:
+    com.zaxxer.hikari.HikariConfig: INFO
+    com.zaxxer.hikari: TRACE

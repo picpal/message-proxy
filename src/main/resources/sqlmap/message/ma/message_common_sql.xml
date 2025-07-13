@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!--
+    SQL File Name : message_common_sql.xml
+    Description : 설명을 기술합니다.
+    author 451773
+    since 2024. 03. 04.
+    version 1.0
+    Modification Information
+        since        author            description
+    ===========    =============    ===========================
+    2024. 03. 04.    451773             최초 생성
+-->
+
+<mapper namespace="com.bwc.message.v1.gate.dao.MaMessageDAO">
+
+    <!--
+        Query ID : selectApiKey
+        Description : 서비스 API 키 조회
+     -->
+    <select id="selectApiKey" parameterType="String" resultType="com.bwc.message.v1.gate.dto.MessageGateApiKeyResDTO">
+        /* com.bwc.message.v1.gate.dao.MaMessageDAO.selectApiKey */
+        SELECT API_KEY,
+               SALT,
+               SERVICE_CODE
+        FROM TB_MG_ECPY_KEY
+        WHERE SERVICE_CODE = #{serviceCode}
+          AND USE_YN = 'Y'
+          AND EXPIRE_DATE >= TO_CHAR(SYSTIMESTAMP, 'YYYYMMDD')
+          AND ROWNUM <![CDATA[ < ]]> 2
+    </select>
+
+
+    <!--
+        Query ID : selectPreApiKey
+        Description : 이전 서비스 API 키 조회
+     -->
+    <select id="selectPreApiKey" parameterType="String"
+            resultType="com.bwc.message.v1.gate.dto.MessageGateApiKeyResDTO">
+        /* com.bwc.message.v1.gate.dao.MaMessageDAO.selectPreApiKey */
+        SELECT API_KEY,
+               SALT,
+               SERVICE_CODE
+        FROM TB_MG_ECPY_KEY_RE_HST
+        WHERE SERVICE_CODE = #{serviceCode}
+          AND USE_YN = 'Y'
+          AND EXPIRE_DATE >= TO_CHAR(SYSTIMESTAMP, 'YYYYMMDD')
+          AND ROWNUM <![CDATA[ < ]]> 2
+    </select>
+
+    <!--
+        Query ID : insertServiceInfo
+        Description : 서비스 연동 키 등록 @TODO 백오피스 기능으로 제거 해야 함
+     -->
+    <select id="insertServiceInfo" parameterType="java.util.HashMap">
+        /* com.bwc.message.v1.gate.dao.MaMessageDAO.insertServiceInfo */
+        INSERT INTO TB_MG_ECPY_KEY
+        (API_KEY,
+         SALT,
+         SERVICE_CODE,
+         USE_YN,
+         CREATE_DATE,
+         EXPIRE_DATE,
+         FST_REG_DTTM,
+         FST_RGNT_NO)
+        VALUES (#{apiKey},
+                #{salt},
+                #{serviceCode},
+                #{useYn},
+                #{createDate},
+                #{expireDate},
+                sysdate,
+                'system')
+    </select>
+
+    <!--
+    Query ID : insertReHstServiceInfo
+    Description : 서비스 key 변경 이력 등록  @TODO 백오피스 기능으로 제거 해야 함
+ -->
+    <select id="insertReHstServiceInfo" parameterType="java.util.HashMap">
+        /* com.bwc.message.v1.gate.dao.MaMessageDAO.insertReHstServiceInfo */
+        INSERT INTO TB_MG_ECPY_KEY_RE_HST
+        SELECT API_KEY,
+               SALT,
+               (SELECT NVL(MAX(SEQ), 0) + 1 FROM TB_MG_ECPY_KEY_RE_HST WHERE SERVICE_CODE = #{serviceCode}) AS SEQ,
+               SERVICE_CODE,
+               USE_YN,
+               CREATE_DATE,
+               EXPIRE_DATE,
+               SYSDATE,
+               'system',
+               null,
+               null
+        FROM TB_MG_ECPY_KEY
+        WHERE SERVICE_CODE = #{serviceCode}
+    </select>
+
+    <!--
+        Query ID : removeServiceInfo
+        Description : 서비스 key  @TODO 백오피스 기능으로 제거 해야 함
+     -->
+    <select id="removeServiceInfo" parameterType="java.util.HashMap">
+        /* com.bwc.message.v1.gate.dao.MaMessageDAO.removeServiceInfo */
+        DELETE
+        FROM TB_MG_ECPY_KEY
+        WHERE SERVICE_CODE = #{serviceCode}
+    </select>
+
+
+</mapper>
