@@ -8,12 +8,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.bwc.message.v1.gate.dao.MaMessageDAO;
+// import com.bwc.message.v1.gate.dao.MaMessageDAO; // 삭제된 클래스
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Service
+// @Service // TODO: 새로운 통합 메시징 구조에서 재구현 필요
 public class KeyGenerator {
 
 	@Value("${app.enckey}")
@@ -21,15 +21,16 @@ public class KeyGenerator {
 
 	private final PasswordEncoder passwordEncoder;
 
-	private final MaMessageDAO maMessageDAO;
+	// TODO: API Key 관리 기능이 필요한 경우 새로운 DAO 구현 필요
+	// private final ApiKeyRepository apiKeyRepository;
 
 	@Autowired
-	public KeyGenerator(PasswordEncoder passwordEncoder, MaMessageDAO maMessageDAO) {
+	public KeyGenerator(PasswordEncoder passwordEncoder) {
 		this.passwordEncoder = passwordEncoder;
-		this.maMessageDAO = maMessageDAO;
 	}
 
-	// @TODO 백오피스 기능으로 빼야 함.
+	// TODO: API Key 생성 기능 비활성화 (DAO 제거로 인해)
+	/*
 	public Map createService(Map params) {
 		String serviceCode = (String)params.get("serviceCode");
 
@@ -74,5 +75,6 @@ public class KeyGenerator {
 		return result;
 
 	}
+	*/
 
 }

@@ -17,7 +17,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.bwc.common.util.StrUtil;
-import com.bwc.message.v1.gate.dao.MaMessageDAO;
+// import com.bwc.message.v1.gate.dao.MaMessageDAO; // 삭제된 클래스
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,16 +25,17 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Aspect
-@Component
+// @Component // TODO: 새로운 통합 메시징 구조에서 재구현 필요
 public class MessageGateAspect {
 
 	@Autowired
 	protected MessageSource messageSource;
 
-	private final MaMessageDAO maMessageDAO;
+	// TODO: 새로운 구조에서 필요시 DAO 재구현
+	// private final SomeMessageLogRepository messageLogRepository;
 
-	public MessageGateAspect(MaMessageDAO maMessageDAO) {
-		this.maMessageDAO = maMessageDAO;
+	public MessageGateAspect() {
+		// 기본 생성자
 	}
 
 	@Pointcut("execution(* com.bwc.message.v1.gate.controller.*.*(..))")

@@ -10,7 +10,7 @@ import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.bwc.bluepay.zomm.eai.data.DataSet;
+// import com.bwc.bluepay.zomm.eai.data.DataSet; // 삭제된 의존성
 import com.bwc.common.constant.SendStatus;
 
 /**
@@ -43,6 +43,8 @@ public class Converter {
 	 * @param obj
 	 * @return
 	 */
+	// TODO: DataSet 의존성 제거로 인해 비활성화
+	/*
 	public static DataSet convertObjectToMap(Object obj) {
 		DataSet dataSet = new DataSet();
 
@@ -69,6 +71,7 @@ public class Converter {
 		}
 		return dataSet;
 	}
+	*/
 
 	/**
 	 * DataSet -> Object 로 변환
@@ -78,6 +81,7 @@ public class Converter {
 	 * @param obj
 	 * @return
 	 */
+	/*
 	public static Object convertObjectToObject(DataSet dataSet, Object obj) {
 		String keyAttribute = null;
 		String setMethodString = "set";
@@ -113,6 +117,7 @@ public class Converter {
 
 		return obj;
 	}
+	*/
 
 	public static Object convertObject(Object mapObj, Object obj) {
 		Field[] fields = obj.getClass().getDeclaredFields();

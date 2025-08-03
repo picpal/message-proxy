@@ -18,13 +18,25 @@ spring:
             instanceName: SchedulerFactoryBean
             instanceId: AUTO
 
+  #######################################################
+  # *********** Datasource settings ***********
+  #######################################################
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:defaultdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
 
-#######################################################
-# *********** mybatis mapper settings ***********
-#######################################################
-mybatis:
-  mapper-locations: classpath:/sqlmap/**/*_sql.xml
-  config-location: classpath:/sqlmap/sql-mapper-config.xml
+  #######################################################
+  # *********** JPA settings ***********
+  #######################################################
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
 
 
 #######################################################
@@ -71,3 +83,12 @@ springdoc:
 #######################################################
 app:
   enckey: ENC(wR5/TCUi4RxoN7ctYEOEqLQElXbdusMeKE1Z9+R4mil8TaW+tcPDB4RWIPOT9ZqkwHaFrS19/ECyh5TzcgLMjQ==)
+
+#######################################################
+# *********** logging settings ***********
+#######################################################
+logging:
+  config: classpath:logback-local.xml  # 콘솔 전용 로깅 사용
+  level:
+    root: INFO
+    com.bwc: DEBUG

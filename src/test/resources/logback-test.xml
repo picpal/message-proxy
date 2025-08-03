@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Test용 간단한 콘솔 로깅만 사용 -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 테스트 중에는 INFO 레벨로 설정하여 불필요한 로그 줄이기 -->
+    <root level="INFO">
+        <appender-ref ref="console"/>
+    </root>
+
+    <!-- 특정 패키지는 DEBUG 레벨로 설정 -->
+    <logger name="com.bwc" level="DEBUG"/>
+    
+    <!-- Spring 프레임워크 로그는 WARN 레벨로 설정 -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    
+    <!-- 데이터베이스 관련 로그 비활성화 -->
+    <logger name="jdbc" level="OFF"/>
+    <logger name="org.mybatis" level="WARN"/>
+</configuration>

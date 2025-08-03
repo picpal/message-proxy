@@ -18,15 +18,11 @@ import lombok.extern.slf4j.Slf4j;
 @EnableWebSecurity
 public class WebSecurityConfig {
 
-	private final CustomUserDetailsService customUserDetailsService;
-
-	public WebSecurityConfig(CustomUserDetailsService customUserDetailsService) {
-		this.customUserDetailsService = customUserDetailsService;
-	}
-
 	private static final String[] WHITE_LIST = {
-		"/v1/**",
-		// "/docs/index.html",
+		"/api/**",
+		"/docs/**",
+		"/swagger-ui/**",
+		"/h2-console/**",
 		"/**"
 	};
 
@@ -41,13 +37,9 @@ public class WebSecurityConfig {
 				SessionCreationPolicy.STATELESS)) // 세션 유지 정책 (세션유지X)
 			.authorizeHttpRequests(request -> request
 				.dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
-				// .requestMatchers(WHITE_LIST).permitAll() // 인증 없이 접근 가능한 endpoint 선언
-				// .requestMatchers("/v1/admin").hasRole("ADMIN") // ADMIN 권한만 접근 가능한 페이지 지정
-				// .requestMatchers("/v1/user").hasRole("USER") // USER 권한만 접근 가능한 페이지 지정
-				.anyRequest().authenticated() // WHITE_LIST가 아닌 모든 요청 인증 진행
-			)
-			.userDetailsService(customUserDetailsService)
-			.httpBasic();
+				.requestMatchers(WHITE_LIST).permitAll() // 인증 없이 접근 가능한 endpoint 선언
+				.anyRequest().permitAll() // 현재는 모든 요청 허용 (API Key 인증 미구현)
+			);
 
 		/*
 			로그인 기능이 있는 경우 주석 해제하여 페이지 설정

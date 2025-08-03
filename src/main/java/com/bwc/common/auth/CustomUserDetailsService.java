@@ -11,43 +11,27 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.bwc.message.v1.gate.dao.MaMessageDAO;
-import com.bwc.message.v1.gate.dto.MessageGateApiKeyResDTO;
+// import com.bwc.message.v1.gate.dao.MaMessageDAO; // 제거된 클래스
+// import com.bwc.message.v1.gate.dto.MessageGateApiKeyResDTO; // 제거된 클래스
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Service
+// @Service // TODO: API Key 인증이 필요한 경우 재구현 필요
 public class CustomUserDetailsService implements UserDetailsService {
 
-	private final MaMessageDAO maMessageDAO;
+	// TODO: API Key 인증이 필요한 경우 DAO 및 DTO 재구현 필요
+	// private final SomeApiKeyRepository apiKeyRepository;
 
-	@Autowired
-	public CustomUserDetailsService(MaMessageDAO maMessageDAO) {
-		this.maMessageDAO = maMessageDAO;
+	public CustomUserDetailsService() {
+		// 기본 생성자
 	}
 
 	@Override
 	public UserDetails loadUserByUsername(String serviceCode) throws UsernameNotFoundException {
-		try {
-			// 이전 발행된 KEY 조회 ( @TODO 유예기간 기능 개발 필요, 조회할 때는 salt + 유입된 API key로 hash한 값을 조회조건으로 해야함)
-			// MessageGateApiKeyResDTO preRes = maMessageDAO.selectPreApiKey(serviceCode);
-
-			// 현재 발행된 KEY 조회
-			MessageGateApiKeyResDTO nowRes = maMessageDAO.selectApiKey(serviceCode);
-
-			// MessageGateApiKeyResDTO res = preRes == null ? nowRes : preRes;
-			MessageGateApiKeyResDTO res = nowRes;
-			if (res == null || res.getApiKey() == null) {
-				throw new UsernameNotFoundException("Service Not found with serviceCode : " + serviceCode);
-			}
-
-			return new CustomUserDetails(res.getServiceCode(), res.getApiKey() + "$" + res.getSalt(), getAuthorities());
-		} catch (Exception e) {
-			// e.printStackTrace();
-			log.info("####### [ERROR] API Key Serch Error");
-			throw new RuntimeException(e);
-		}
+		// TODO: 현재 프로젝트에서는 API Key 인증 미구현
+		// 필요시 새로운 구조에 맞게 재구현
+		throw new UsernameNotFoundException("API Key authentication not implemented in current version");
 	}
 
 	private Collection<? extends GrantedAuthority> getAuthorities() {

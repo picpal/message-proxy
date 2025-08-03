@@ -5,7 +5,7 @@
 
     <!-- class만 따로 지정해서 이 클래스만 로그를 따로 관리할 수 있다. LoginInterceptor class 파일만 따로 로그 관리 -->
     <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_DIR}/${LOG_PREFIX}.log</file>1111
+        <file>${LOG_DIR}/${LOG_PREFIX}.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_DIR}/archived/${LOG_PREFIX}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>

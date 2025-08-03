@@ -1,0 +1,469 @@
+{
+	"info": {
+		"_postman_id": "discord-sns-messaging-collection",
+		"name": "Discord SNS Messaging API Test Collection",
+		"description": "Discord SNS 메시징 시스템 테스트를 위한 Postman Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Discord Simple Text Message",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('success');",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"});",
+							"",
+							"pm.test(\"Response has messageId\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('messageId');",
+							"    pm.expect(jsonData.messageId).to.not.be.empty;",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"messageId\": \"DISCORD-SIMPLE-{{$randomUUID}}\",\n  \"type\": \"FACEBOOK_MESSENGER\",\n  \"sender\": \"POSTMAN_TEST\",\n  \"content\": \"안녕하세요! Discord 텍스트 메시지 테스트입니다.\",\n  \"webhookUrl\": \"{{DISCORD_WEBHOOK_URL}}\",\n  \"isEmbed\": false\n}"
+				},
+				"url": {
+					"raw": "{{BASE_URL}}/api/v1/messaging/unified/send",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messaging",
+						"unified",
+						"send"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Discord Embed Message",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response indicates success\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"});",
+							"",
+							"pm.test(\"Embed message sent successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.vendorMessageId).to.contain('DISCORD');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"messageId\": \"DISCORD-EMBED-{{$randomUUID}}\",\n  \"type\": \"FACEBOOK_MESSENGER\",\n  \"sender\": \"POSTMAN_TEST\",\n  \"content\": \"시스템 상태 알림\",\n  \"webhookUrl\": \"{{DISCORD_WEBHOOK_URL}}\",\n  \"isEmbed\": true,\n  \"title\": \"서버 모니터링 알림\",\n  \"description\": \"현재 서버 상태 정보입니다.\",\n  \"color\": \"#00ff00\",\n  \"thumbnailUrl\": \"https://example.com/server-icon.png\",\n  \"imageUrl\": \"https://example.com/server-status.png\",\n  \"fields\": [\n    {\n      \"name\": \"CPU 사용률\",\n      \"value\": \"75%\",\n      \"inline\": true\n    },\n    {\n      \"name\": \"메모리 사용률\",\n      \"value\": \"60%\",\n      \"inline\": true\n    },\n    {\n      \"name\": \"디스크 사용률\",\n      \"value\": \"45%\",\n      \"inline\": true\n    },\n    {\n      \"name\": \"응답 시간\",\n      \"value\": \"250ms\",\n      \"inline\": false\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{BASE_URL}}/api/v1/messaging/unified/send",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messaging",
+						"unified",
+						"send"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Discord Message with Buttons",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Button message sent successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"    pm.expect(jsonData).to.have.property('vendorMessageId');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"messageId\": \"DISCORD-BUTTONS-{{$randomUUID}}\",\n  \"type\": \"FACEBOOK_MESSENGER\",\n  \"sender\": \"POSTMAN_TEST\",\n  \"content\": \"작업을 선택해주세요.\",\n  \"webhookUrl\": \"{{DISCORD_WEBHOOK_URL}}\",\n  \"isEmbed\": false,\n  \"buttons\": [\n    {\n      \"type\": \"LINK\",\n      \"label\": \"대시보드 열기\",\n      \"url\": \"https://dashboard.example.com\"\n    },\n    {\n      \"type\": \"PRIMARY\",\n      \"label\": \"작업 시작\",\n      \"callbackData\": \"start_task\"\n    },\n    {\n      \"type\": \"DANGER\",\n      \"label\": \"작업 중단\",\n      \"callbackData\": \"stop_task\"\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{BASE_URL}}/api/v1/messaging/unified/send",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messaging",
+						"unified",
+						"send"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Discord Complex Embed with Buttons",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Complex message sent successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"});",
+							"",
+							"pm.test(\"Response time is less than 5000ms\", function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"messageId\": \"DISCORD-COMPLEX-{{$randomUUID}}\",\n  \"type\": \"FACEBOOK_MESSENGER\",\n  \"sender\": \"POSTMAN_TEST\",\n  \"content\": \"시스템 업데이트 알림\",\n  \"webhookUrl\": \"{{DISCORD_WEBHOOK_URL}}\",\n  \"isEmbed\": true,\n  \"title\": \"🚀 시스템 업데이트 v2.1.0\",\n  \"description\": \"새로운 기능과 개선사항이 포함된 업데이트가 출시되었습니다.\",\n  \"color\": \"#ff6600\",\n  \"thumbnailUrl\": \"https://example.com/update-icon.png\",\n  \"imageUrl\": \"https://example.com/release-banner.png\",\n  \"fields\": [\n    {\n      \"name\": \"📦 버전\",\n      \"value\": \"v2.1.0\",\n      \"inline\": true\n    },\n    {\n      \"name\": \"📅 릴리즈 날짜\",\n      \"value\": \"2024-01-15\",\n      \"inline\": true\n    },\n    {\n      \"name\": \"⭐ 주요 변경사항\",\n      \"value\": \"• Discord SNS 통합\\n• 성능 개선\\n• 버그 수정\",\n      \"inline\": false\n    },\n    {\n      \"name\": \"🔗 문서\",\n      \"value\": \"[릴리즈 노트](https://example.com/release-notes)\\n[API 문서](https://example.com/api-docs)\",\n      \"inline\": false\n    }\n  ],\n  \"buttons\": [\n    {\n      \"type\": \"SUCCESS\",\n      \"label\": \"지금 업데이트\",\n      \"callbackData\": \"update_now\"\n    },\n    {\n      \"type\": \"SECONDARY\",\n      \"label\": \"나중에 업데이트\",\n      \"callbackData\": \"update_later\"\n    },\n    {\n      \"type\": \"LINK\",\n      \"label\": \"릴리즈 노트 보기\",\n      \"url\": \"https://example.com/release-notes\"\n    },\n    {\n      \"type\": \"CALLBACK\",\n      \"label\": \"설정 변경\",\n      \"callbackData\": \"open_settings\"\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{BASE_URL}}/api/v1/messaging/unified/send",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messaging",
+						"unified",
+						"send"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Discord Error Handling Test - Invalid Webhook",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 or 500\", function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+							"});",
+							"",
+							"pm.test(\"Error response contains error information\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.false;",
+							"    pm.expect(jsonData).to.have.property('errorCode');",
+							"    pm.expect(jsonData).to.have.property('errorMessage');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"messageId\": \"DISCORD-ERROR-{{$randomUUID}}\",\n  \"type\": \"FACEBOOK_MESSENGER\",\n  \"sender\": \"POSTMAN_TEST\",\n  \"content\": \"잘못된 웹훅 URL 테스트\",\n  \"webhookUrl\": \"https://invalid-webhook-url.com/webhook\",\n  \"isEmbed\": false\n}"
+				},
+				"url": {
+					"raw": "{{BASE_URL}}/api/v1/messaging/unified/send",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messaging",
+						"unified",
+						"send"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Message Status Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Status response contains valid status\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"    pm.expect(jsonData.status).to.be.oneOf(['PENDING', 'SENT', 'FAILED', 'DELIVERED']);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{BASE_URL}}/api/v1/messaging/status/{{MESSAGE_ID}}",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messaging",
+						"status",
+						"{{MESSAGE_ID}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Health Check - Discord Strategy",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Health check shows system is healthy\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('healthy');",
+							"    pm.expect(jsonData.healthy).to.be.true;",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{BASE_URL}}/api/v1/messaging/health",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messaging",
+						"health"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Discord All Button Types Test",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"All button types handled correctly\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"messageId\": \"DISCORD-ALL-BUTTONS-{{$randomUUID}}\",\n  \"type\": \"FACEBOOK_MESSENGER\",\n  \"sender\": \"POSTMAN_TEST\",\n  \"content\": \"모든 버튼 타입 테스트\",\n  \"webhookUrl\": \"{{DISCORD_WEBHOOK_URL}}\",\n  \"isEmbed\": false,\n  \"buttons\": [\n    {\n      \"type\": \"PRIMARY\",\n      \"label\": \"Primary 버튼\",\n      \"callbackData\": \"primary_action\"\n    },\n    {\n      \"type\": \"SECONDARY\",\n      \"label\": \"Secondary 버튼\",\n      \"callbackData\": \"secondary_action\"\n    },\n    {\n      \"type\": \"SUCCESS\",\n      \"label\": \"Success 버튼\",\n      \"callbackData\": \"success_action\"\n    },\n    {\n      \"type\": \"DANGER\",\n      \"label\": \"Danger 버튼\",\n      \"callbackData\": \"danger_action\"\n    },\n    {\n      \"type\": \"LINK\",\n      \"label\": \"Link 버튼\",\n      \"url\": \"https://example.com\"\n    },\n    {\n      \"type\": \"CALLBACK\",\n      \"label\": \"Callback 버튼\",\n      \"callbackData\": \"callback_action\"\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{BASE_URL}}/api/v1/messaging/unified/send",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messaging",
+						"unified",
+						"send"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Discord Performance Test",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Response time is acceptable\", function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(3000);",
+							"});",
+							"",
+							"pm.test(\"High load message sent successfully\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"messageId\": \"DISCORD-PERF-{{$randomUUID}}\",\n  \"type\": \"FACEBOOK_MESSENGER\",\n  \"sender\": \"POSTMAN_PERF_TEST\",\n  \"content\": \"성능 테스트용 메시지입니다.\",\n  \"webhookUrl\": \"{{DISCORD_WEBHOOK_URL}}\",\n  \"isEmbed\": true,\n  \"title\": \"성능 테스트\",\n  \"description\": \"이 메시지는 시스템 성능을 테스트하기 위한 것입니다.\",\n  \"color\": \"#0099ff\",\n  \"fields\": [\n    {\n      \"name\": \"테스트 타입\",\n      \"value\": \"성능 테스트\",\n      \"inline\": true\n    },\n    {\n      \"name\": \"요청 시간\",\n      \"value\": \"{{$timestamp}}\",\n      \"inline\": true\n    },\n    {\n      \"name\": \"테스트 ID\",\n      \"value\": \"{{$randomUUID}}\",\n      \"inline\": false\n    }\n  ],\n  \"buttons\": [\n    {\n      \"type\": \"SUCCESS\",\n      \"label\": \"테스트 완료\",\n      \"callbackData\": \"test_complete\"\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{BASE_URL}}/api/v1/messaging/unified/send",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messaging",
+						"unified",
+						"send"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// 테스트 실행 전 환경 변수 확인",
+					"if (!pm.environment.get(\"DISCORD_WEBHOOK_URL\")) {",
+					"    console.warn(\"DISCORD_WEBHOOK_URL 환경 변수가 설정되지 않았습니다.\");",
+					"}",
+					"",
+					"if (!pm.environment.get(\"BASE_URL\")) {",
+					"    pm.environment.set(\"BASE_URL\", \"http://localhost:8080\");",
+					"    console.log(\"BASE_URL을 기본값으로 설정했습니다: http://localhost:8080\");",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "BASE_URL",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "DISCORD_WEBHOOK_URL",
+			"value": "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN",
+			"type": "string"
+		},
+		{
+			"key": "MESSAGE_ID",
+			"value": "SAMPLE-MESSAGE-ID",
+			"type": "string"
+		}
+	]
+}
