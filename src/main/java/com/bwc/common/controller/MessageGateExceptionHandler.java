@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import org.apache.commons.lang3.StringUtils;
 import com.bwc.common.constant.ErrorCodeEnum;
 import com.bwc.common.constant.ValidCodeEnum;
 import com.bwc.common.exception.MessageGateException;
 import com.bwc.common.model.ErrorCodeModel;
-import com.bwc.common.util.StrUtil;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,7 +73,7 @@ public class MessageGateExceptionHandler {
 			HttpServletRequest request = ((ServletRequestAttributes)RequestContextHolder.currentRequestAttributes()).getRequest();
 			String authorization = request.getHeader("authorization");
 
-			if (StrUtil.isEmpty(authorization)) {
+			if (StringUtils.isEmpty(authorization)) {
 				log.info("@ authorization 이 들어오지 않았습니다.");
 			} else {
 				log.info("@ authorization 가 잘못된 값으로 내려오고 있습니다. : {}", authorization);

@@ -7,8 +7,8 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import org.apache.commons.lang3.StringUtils;
 import com.bwc.common.constant.CommonCode;
-import com.bwc.common.util.StrUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -46,7 +46,7 @@ public class RestTransUtil {
 
 		HttpServletRequest request = ((ServletRequestAttributes)RequestContextHolder.currentRequestAttributes()).getRequest();
 		HttpSession session = request.getSession();
-		String sessGuid = StrUtil.nullToStr(session.getAttribute("SESS_GUID"));
+		String sessGuid = StringUtils.defaultString(String.valueOf(session.getAttribute("SESS_GUID")));
 		String httpUrl = "https://localhost:8081";
 
 		log.info("SESS_GUID = {}, @RestAPI : restSend() ####START####", sessGuid);
@@ -74,7 +74,7 @@ public class RestTransUtil {
 			dataSet.put("rsltCd", CommonCode.INTERNAL_API_ERROR.getCode());
 			dataSet.put("rsltMsg", CommonCode.INTERNAL_API_ERROR.getMsg());
 
-			log.error("SESS_GUID = {}, StackTrace : {}", sessGuid, StrUtil.getError(e));
+			log.error("SESS_GUID = {}, StackTrace : {}", sessGuid, "");
 		} catch (Exception e) {
 			/*
 			 * [CWE-209] Coderay 취약점
@@ -85,7 +85,7 @@ public class RestTransUtil {
 			dataSet.put("rsltCd", CommonCode.ETC_ERROR.getCode());
 			dataSet.put("rsltMsg", CommonCode.ETC_ERROR.getMsg());
 
-			log.error("SESS_GUID = {}, StackTrace : {}", sessGuid, StrUtil.getError(e));
+			log.error("SESS_GUID = {}, StackTrace : {}", sessGuid, "");
 		}
 
 		log.info("SESS_GUID = {}, @RestAPI : restSend() ####E N D####", sessGuid);

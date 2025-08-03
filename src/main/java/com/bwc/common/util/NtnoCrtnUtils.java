@@ -3,6 +3,7 @@ package com.bwc.common.util;
 import java.security.SecureRandom;
 import java.util.Date;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -41,7 +42,7 @@ public class NtnoCrtnUtils {
 	public String occrTrxGuid() {
 		//String trxGuidPrifix = trxGuidPrifix;
 
-		return trxGuidPrifix + systemPrefix() + DateUtils.getMillisecTime() + occrRmno(2) + occrSqnc(2);
+		return trxGuidPrifix + systemPrefix() + DateUtil.getMillisecTime() + occrRmno(2) + occrSqnc(2);
 	}
 
 	/**
@@ -102,7 +103,7 @@ public class NtnoCrtnUtils {
 		if (strN.length() > i) {
 			strN = strN.substring(0, i);
 		} else {
-			strN = StrUtil.rightPad(strN, i, "0");
+			strN = StringUtils.rightPad(strN, i, "0");
 		}
 		return strN;
 	}
@@ -116,7 +117,7 @@ public class NtnoCrtnUtils {
 		} else {
 			sqnc++;
 		}
-		return StrUtil.leftPad(String.valueOf(sqnc), i, "0");
+		return StringUtils.leftPad(String.valueOf(sqnc), i, "0");
 	}
 
 	/*내부대체식별번호 용*/
@@ -128,7 +129,7 @@ public class NtnoCrtnUtils {
 		} else {
 			sqnc2++;
 		}
-		return StrUtil.leftPad(String.valueOf(sqnc2), i, "0");
+		return StringUtils.leftPad(String.valueOf(sqnc2), i, "0");
 	}
 
 	/*세션GUID 용*/
@@ -140,7 +141,7 @@ public class NtnoCrtnUtils {
 		} else {
 			sqnc3++;
 		}
-		return StrUtil.leftPad(String.valueOf(sqnc3), i, "0");
+		return StringUtils.leftPad(String.valueOf(sqnc3), i, "0");
 	}
 
 	/**
@@ -151,6 +152,6 @@ public class NtnoCrtnUtils {
 	 * @return
 	 */
 	public String getInnrTrfrIdno(String innrTrfrIdnoTp) {
-		return innrTrfrIdnoTp + DateUtils.getMillisecTime() + occrRmno(3) + occrSqnc2(2);
+		return innrTrfrIdnoTp + DateUtil.getMillisecTime() + occrRmno(3) + occrSqnc2(2);
 	}
 }

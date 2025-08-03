@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 
 /**
  * 통합 메시징 API 컨트롤러
@@ -39,8 +40,9 @@ public class UnifiedMessageController {
     public ResponseEntity<UnifiedMessageResponse> sendMessage(
             @Valid @RequestBody UnifiedMessageRequest request) {
         
-        log.info("Received message send request: type={}, messageId={}", 
-            request.getType(), request.getMessageId());
+        String traceId = MDC.get("traceId");
+        log.info("Received message send request: type={}, messageId={}, traceId={}", 
+            request.getType(), request.getMessageId(), traceId);
         
         try {
             UnifiedMessageResponse response = messageFacade.sendMessage(request);

@@ -3,6 +3,10 @@ package com.bwc.common.util;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -10,6 +14,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 
+import org.apache.commons.lang3.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -586,11 +591,11 @@ public final class DateUtil {
 	 */
 	public static String toString(Date date, String format, Locale locale) {
 
-		if (StrUtil.isEmpty(format)) {
+		if (StringUtils.isEmpty(format)) {
 			format = "yyyy-MM-dd HH:mm:ss";
 		}
 
-		if (ObjectUtil.isNull(locale)) {
+		if (locale == null) {
 			locale = Locale.KOREA;
 		}
 
@@ -599,5 +604,152 @@ public final class DateUtil {
 		String tmp = sdf.format(date);
 
 		return tmp;
+	}
+
+	// === DateUtils에서 통합된 메서드들 ===
+	
+	/**
+	 * 현재 년월 - YYYYMM (DateUtils에서 이동)
+	 */
+	public static String getMonth() {
+		return LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
+	}
+
+	/**
+	 * 현재 년월일 - YYYYMMDD (DateUtils에서 이동)
+	 */
+	public static String getDate() {
+		return LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+	}
+
+	/**
+	 * 현재 시간 - HHMISS (DateUtils에서 이동)
+	 */
+	public static String getTime() {
+		return LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+	}
+
+	/**
+	 * 초단위시간 조회 (DateUtils에서 이동)
+	 */
+	public static String getSecTime() {
+		return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+	}
+
+	/**
+	 * 밀리세컨드초단위시간 조회 (DateUtils에서 이동)
+	 */
+	public static String getMillisecTime() {
+		return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS"));
+	}
+
+	/**
+	 * 특정날짜에 일자나 월수 더한 값 반환 (DateUtils에서 이동)
+	 */
+	public static String getDateCalculation(String dateTime, int plus, boolean isDay) {
+		if (dateTime == null) return "";
+		if (dateTime.startsWith("99991231")) return dateTime;
+
+		String hms = "";
+		if (dateTime.length() > 8) {
+			hms = dateTime.substring(8);
+		}
+
+		LocalDate date = LocalDate.parse(dateTime.substring(0, 8), DateTimeFormatter.ofPattern("yyyyMMdd"));
+		
+		if (isDay) {
+			date = date.plusDays(plus);
+		} else {
+			date = date.plusMonths(plus);
+		}
+
+		return date.format(DateTimeFormatter.ofPattern("yyyyMMdd")) + hms;
+	}
+
+	/**
+	 * 특정날짜에 일자를 더한 값 반환 (DateUtils에서 이동)
+	 */
+	public static String getAddDay(String date, int plusDay) {
+		return getDateCalculation(date, plusDay, true);
+	}
+
+	/**
+	 * 특정날짜에 달을 더한 값 반환 (DateUtils에서 이동)
+	 */
+	public static String getAddMonth(String date, int plusMonth) {
+		return getDateCalculation(date, plusMonth, false);
+	}
+
+	/**
+	 * 어제일자 - YYYYMMDD (DateUtils에서 이동)
+	 */
+	public static String getYesterday() {
+		return LocalDate.now().minusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+	}
+
+	/**
+	 * 내일일자 - YYYYMMDD (DateUtils에서 이동)
+	 */
+	public static String getTomorrow() {
+		return LocalDate.now().plusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+	}
+
+	/**
+	 * 일자 유효성 체크 (DateUtils에서 이동)
+	 */
+	public static boolean isDate(String str) {
+		if (str == null || str.length() != 8) return false;
+		
+		try {
+			LocalDate.parse(str, DateTimeFormatter.ofPattern("yyyyMMdd"));
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	/**
+	 * YYYY-MM-DD 형태로 반환 (DateUtils에서 이동)
+	 */
+	public static String getStringToDateForm(String strDt) {
+		if (strDt == null || strDt.length() != 8) return "";
+		
+		try {
+			LocalDate date = LocalDate.parse(strDt, DateTimeFormatter.ofPattern("yyyyMMdd"));
+			return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+		} catch (Exception e) {
+			return "";
+		}
+	}
+
+	/**
+	 * YYYYMMDDHH24MISS 유효성 체크 (DateUtils에서 이동)
+	 */
+	public static boolean isVaildDate(String str) {
+		if (str == null || str.length() != 14) return false;
+		
+		try {
+			LocalDateTime.parse(str, DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	/**
+	 * 시간 유효성 체크 (HH24MISS) (DateUtils에서 이동)
+	 */
+	public static boolean isTime(String str) {
+		if (str == null || str.length() != 6) return false;
+		
+		try {
+			int hour = Integer.parseInt(str.substring(0, 2));
+			int min = Integer.parseInt(str.substring(2, 4));
+			int sec = Integer.parseInt(str.substring(4, 6));
+			
+			return hour >= 0 && hour <= 23 && min >= 0 && min <= 59 && sec >= 0 && sec <= 59;
+		} catch (Exception e) {
+			return false;
+		}
 	}
 }

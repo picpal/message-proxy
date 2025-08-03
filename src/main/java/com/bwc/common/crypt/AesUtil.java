@@ -3,8 +3,8 @@ package com.bwc.common.crypt;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
+import org.apache.commons.lang3.StringUtils;
 import com.bwc.common.util.AESCryptUtil;
-import com.bwc.common.util.StrUtil;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,7 +13,7 @@ public class AesUtil {
 
 	public static String doEncrypt(String key, String plainText) {
 
-		plainText = StrUtil.nullToStr(plainText);
+		plainText = StringUtils.defaultString(plainText);
 		String retStr = "";
 
 		AESCryptUtil aecUtil = new AESCryptUtil(key);
@@ -28,7 +28,7 @@ public class AesUtil {
 
 	public static String doDecrypt(String key, String plainText) {
 
-		plainText = StrUtil.nullToStr(plainText);
+		plainText = StringUtils.defaultString(plainText);
 		String retStr = "";
 
 		AESCryptUtil aecUtil = new AESCryptUtil(key);

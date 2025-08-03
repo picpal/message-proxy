@@ -4,11 +4,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
 import org.jasypt.iv.RandomIvGenerator;
 import org.junit.jupiter.api.Test;
-
-import com.bwc.common.util.StrUtil;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -57,7 +56,7 @@ class JasyptConigAESTest {
 	}
 
 	private String jasyptEncoding(String encKey, String value) {
-		if (StrUtil.isEmpty(encKey)) {
+		if (StringUtils.isEmpty(encKey)) {
 			log.error("Not Found ENC_KEY");
 			return "";
 		}
