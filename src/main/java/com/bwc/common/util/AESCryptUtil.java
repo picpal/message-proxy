@@ -58,8 +58,7 @@ public class AESCryptUtil {
 	/**
 	 * 평문을 암호화한다.
 	 *
-	 * @param pbPlainData 결제관련 전문
-	 * @param bSessionKey 암호화에 사용될 세션키
+	 * @param plainText 암호화에 사용될 세션키
 	 * @return 암호화된 결제관련 전문
 	 * @throws Exception
 	 */
