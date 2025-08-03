@@ -1,165 +1,167 @@
 package com.bwc.messaging.sms.infrastructure.persistence;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
+import com.bwc.messaging.shared.domain.MessageChannel;
 import com.bwc.messaging.shared.domain.MessageStatus;
 import com.bwc.messaging.shared.domain.MessageType;
 import com.bwc.messaging.sms.domain.SmsMessage;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("SmsRepositoryImpl 테스트")
+@DisplayName("SMS 리포지토리 단위 테스트")
 class SmsRepositoryImplTest {
 
     @Mock
     private SmsMessageJpaRepository smsMessageJpaRepository;
     
-    @InjectMocks
-    private SmsRepositoryImpl smsRepositoryImpl;
-    
-    private SmsMessage testSmsMessage;
-    private SmsMessageEntity testEntity;
-    
+    private SmsRepositoryImpl smsRepository;
+    private SmsMessage testMessage;
+
     @BeforeEach
     void setUp() {
-        testSmsMessage = SmsMessage.builder(MessageType.SMS)
-            .messageId("MSG-001")
-            .sender("TEST_SERVICE")
+        smsRepository = new SmsRepositoryImpl(smsMessageJpaRepository);
+        
+        testMessage = SmsMessage.builder(MessageType.SMS)
+            .messageId("test-repo-001")
+            .sender("TestApp")
             .senderNumber("01012345678")
             .receiver("01087654321")
             .content("테스트 메시지")
-            .templateCode("TEMPLATE_001")
             .build();
-        testSmsMessage.setStatus(MessageStatus.PENDING);
-        
-        testEntity = SmsMessageEntity.builder()
-            .messageId("MSG-001")
-            .type(MessageType.SMS)
-            .sender("TEST_SERVICE")
-            .senderNumber("01012345678")
-            .receiver("01087654321")
-            .content("테스트 메시지")
-            .status(MessageStatus.PENDING)
-            .templateCode("TEMPLATE_001")
-            .retryCount(0)
-            .createdAt(LocalDateTime.now())
-            .build();
+        testMessage.setStatus(MessageStatus.PENDING);
+        testMessage.setChannel(MessageChannel.LGU_V1);
     }
-    
+
     @Test
-    @DisplayName("SMS 메시지 저장 성공")
-    void save_Success() {
-        // Given
-        when(smsMessageJpaRepository.save(any(SmsMessageEntity.class))).thenReturn(testEntity);
-        
-        // When
-        assertDoesNotThrow(() -> smsRepositoryImpl.save(testSmsMessage));
-        
-        // Then
+    @DisplayName("SMS 메시지를 저장한다")
+    void saveMessage() {
+        // when
+        smsRepository.save(testMessage);
+
+        // then
         verify(smsMessageJpaRepository).save(any(SmsMessageEntity.class));
     }
-    
+
     @Test
-    @DisplayName("메시지 ID로 조회 성공")
-    void findById_Success() {
-        // Given
-        when(smsMessageJpaRepository.findByMessageId("MSG-001")).thenReturn(Optional.of(testEntity));
+    @DisplayName("SMS 메시지를 조회한다")
+    void findMessage() {
+        // given
+        SmsMessageEntity entity = createTestEntity();
+        when(smsMessageJpaRepository.findByMessageId(testMessage.getMessageId()))
+            .thenReturn(Optional.of(entity));
+
+        // when
+        Optional<SmsMessage> found = smsRepository.findById(testMessage.getMessageId());
+
+        // then
+        assertThat(found).isPresent();
+        SmsMessage foundMessage = found.get();
+        assertThat(foundMessage.getMessageId()).isEqualTo(testMessage.getMessageId());
+        assertThat(foundMessage.getSender()).isEqualTo(testMessage.getSender());
+        assertThat(foundMessage.getType()).isEqualTo(MessageType.SMS);
         
-        // When
-        Optional<SmsMessage> result = smsRepositoryImpl.findById("MSG-001");
-        
-        // Then
-        assertTrue(result.isPresent());
-        SmsMessage foundMessage = result.get();
-        assertEquals("MSG-001", foundMessage.getMessageId());
-        assertEquals("TEST_SERVICE", foundMessage.getSender());
-        
-        verify(smsMessageJpaRepository).findByMessageId("MSG-001");
+        verify(smsMessageJpaRepository).findByMessageId(testMessage.getMessageId());
     }
-    
+
     @Test
-    @DisplayName("메시지 ID로 조회 - 결과 없음")
-    void findById_NotFound() {
-        // Given
-        when(smsMessageJpaRepository.findByMessageId("NON-EXISTENT")).thenReturn(Optional.empty());
-        
-        // When
-        Optional<SmsMessage> result = smsRepositoryImpl.findById("NON-EXISTENT");
-        
-        // Then
-        assertFalse(result.isPresent());
-        verify(smsMessageJpaRepository).findByMessageId("NON-EXISTENT");
+    @DisplayName("메시지 상태를 업데이트한다")
+    void updateMessageStatus() {
+        // given
+        SmsMessageEntity entity = createTestEntity();
+        when(smsMessageJpaRepository.findByMessageId(testMessage.getMessageId()))
+            .thenReturn(Optional.of(entity));
+
+        // when
+        smsRepository.updateStatus(testMessage.getMessageId(), MessageStatus.SENT);
+
+        // then
+        verify(smsMessageJpaRepository).findByMessageId(testMessage.getMessageId());
+        verify(smsMessageJpaRepository).save(entity);
+        assertThat(entity.getStatus()).isEqualTo(MessageStatus.SENT);
+        assertThat(entity.getSentAt()).isNotNull();
     }
-    
+
     @Test
-    @DisplayName("메시지 상태 업데이트 성공")
-    void updateStatus_Success() {
-        // Given
-        when(smsMessageJpaRepository.findByMessageId("MSG-001")).thenReturn(Optional.of(testEntity));
-        when(smsMessageJpaRepository.save(any(SmsMessageEntity.class))).thenReturn(testEntity);
-        
-        // When
-        assertDoesNotThrow(() -> smsRepositoryImpl.updateStatus("MSG-001", MessageStatus.SENT));
-        
-        // Then
-        verify(smsMessageJpaRepository).findByMessageId("MSG-001");
-        verify(smsMessageJpaRepository).save(any(SmsMessageEntity.class));
+    @DisplayName("재시도 횟수를 증가시킨다")
+    void incrementRetryCount() {
+        // given
+        SmsMessageEntity entity = createTestEntity();
+        entity.setRetryCount(0);
+        when(smsMessageJpaRepository.findByMessageId(testMessage.getMessageId()))
+            .thenReturn(Optional.of(entity));
+
+        // when
+        smsRepository.incrementRetryCount(testMessage.getMessageId());
+
+        // then
+        verify(smsMessageJpaRepository).findByMessageId(testMessage.getMessageId());
+        verify(smsMessageJpaRepository).save(entity);
+        assertThat(entity.getRetryCount()).isEqualTo(1);
     }
-    
+
     @Test
-    @DisplayName("재발송 횟수 증가 성공")
-    void incrementRetryCount_Success() {
-        // Given
-        when(smsMessageJpaRepository.findByMessageId("MSG-001")).thenReturn(Optional.of(testEntity));
-        when(smsMessageJpaRepository.save(any(SmsMessageEntity.class))).thenReturn(testEntity);
+    @DisplayName("PENDING 상태의 메시지들을 조회한다")
+    void findPendingMessages() {
+        // given
+        SmsMessageEntity entity1 = createTestEntity("pending-001", MessageStatus.PENDING);
+        SmsMessageEntity entity2 = createTestEntity("pending-002", MessageStatus.PENDING);
+        List<SmsMessageEntity> pendingEntities = List.of(entity1, entity2);
         
-        // When
-        assertDoesNotThrow(() -> smsRepositoryImpl.incrementRetryCount("MSG-001"));
-        
-        // Then
-        verify(smsMessageJpaRepository).findByMessageId("MSG-001");
-        verify(smsMessageJpaRepository).save(any(SmsMessageEntity.class));
-    }
-    
-    @Test
-    @DisplayName("대기 중인 메시지 조회")
-    void findPendingMessages_Success() {
-        // Given
         when(smsMessageJpaRepository.findByStatusOrderByCreatedAtAsc(MessageStatus.PENDING))
-            .thenReturn(List.of(testEntity));
-        
-        // When
-        List<SmsMessage> result = smsRepositoryImpl.findPendingMessages(10);
-        
-        // Then
-        assertFalse(result.isEmpty());
-        assertEquals(1, result.size());
-        assertEquals("MSG-001", result.get(0).getMessageId());
+            .thenReturn(pendingEntities);
+
+        // when
+        List<SmsMessage> pendingMessages = smsRepository.findPendingMessages(10);
+
+        // then
+        assertThat(pendingMessages).hasSize(2);
+        assertThat(pendingMessages)
+            .extracting(SmsMessage::getMessageId)
+            .containsExactly("pending-001", "pending-002");
         
         verify(smsMessageJpaRepository).findByStatusOrderByCreatedAtAsc(MessageStatus.PENDING);
     }
-    
+
     @Test
-    @DisplayName("헬스 체크")
-    void healthCheck_Success() {
-        // Given
-        when(smsMessageJpaRepository.count()).thenReturn(100L);
-        
-        // When & Then
-        assertDoesNotThrow(() -> smsRepositoryImpl.healthCheck());
+    @DisplayName("헬스 체크가 정상 동작한다")
+    void healthCheck() {
+        // given
+        when(smsMessageJpaRepository.count()).thenReturn(5L);
+
+        // when & then
+        assertThatCode(() -> smsRepository.healthCheck()).doesNotThrowAnyException();
         verify(smsMessageJpaRepository).count();
+    }
+
+    private SmsMessageEntity createTestEntity() {
+        return createTestEntity(testMessage.getMessageId(), MessageStatus.PENDING);
+    }
+
+    private SmsMessageEntity createTestEntity(String messageId, MessageStatus status) {
+        return SmsMessageEntity.builder()
+            .messageId(messageId)
+            .type(MessageType.SMS)
+            .sender("TestApp")
+            .senderNumber("01012345678")
+            .receiver("01087654321")
+            .content("테스트 메시지")
+            .status(status)
+            .channel(MessageChannel.LGU_V1)
+            .retryCount(0)
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .build();
     }
 }

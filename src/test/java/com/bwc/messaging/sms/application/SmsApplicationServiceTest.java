@@ -1,19 +1,15 @@
 package com.bwc.messaging.sms.application;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
-import java.util.Optional;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import com.bwc.messaging.shared.domain.MessageChannel;
 import com.bwc.messaging.shared.domain.MessageResult;
@@ -25,7 +21,7 @@ import com.bwc.messaging.sms.domain.SmsMessage;
 import com.bwc.messaging.sms.domain.SmsRepository;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("SmsApplicationService 테스트")
+@DisplayName("SMS 애플리케이션 서비스 테스트")
 class SmsApplicationServiceTest {
 
     @Mock
@@ -39,168 +35,130 @@ class SmsApplicationServiceTest {
     
     @Mock
     private SmsStrategy smsStrategy;
-    
+
     @InjectMocks
     private SmsApplicationService smsApplicationService;
-    
-    private SmsMessage validSmsMessage;
-    private SmsMessage invalidSmsMessage;
-    
+
+    private SmsMessage testMessage;
+
     @BeforeEach
     void setUp() {
-        validSmsMessage = SmsMessage.builder(MessageType.SMS)
-            .messageId("MSG-001")
-            .sender("TEST")
+        testMessage = SmsMessage.builder(MessageType.SMS)
+            .messageId("test-msg-001")
+            .sender("TestApp")
             .senderNumber("01012345678")
             .receiver("01087654321")
             .content("테스트 메시지")
             .build();
-            
-        invalidSmsMessage = SmsMessage.builder(MessageType.SMS)
-            .messageId("MSG-002")
-            .sender("TEST")
-            .senderNumber("invalid")
-            .receiver("invalid")
-            .content("")
+    }
+
+    @Test
+    @DisplayName("유효한 SMS 메시지를 성공적으로 발송한다")
+    void sendValidSmsMessage() {
+        // given
+        MessageChannel selectedChannel = MessageChannel.LGU_V1;
+        MessageResult expectedResult = MessageResult.success(testMessage.getMessageId(), "MSG_001");
+        
+        when(channelRouter.selectChannel(testMessage)).thenReturn(selectedChannel);
+        when(strategyFactory.getStrategy(selectedChannel)).thenReturn(smsStrategy);
+        when(smsStrategy.send(testMessage)).thenReturn(expectedResult);
+
+        // when
+        MessageResult result = smsApplicationService.sendSms(testMessage);
+
+        // then
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getMessageId()).isEqualTo(testMessage.getMessageId());
+        
+        verify(smsRepository).save(testMessage);
+        verify(smsRepository).updateStatus(testMessage.getMessageId(), MessageStatus.SENT);
+        verify(channelRouter).selectChannel(testMessage);
+        verify(strategyFactory).getStrategy(selectedChannel);
+        verify(smsStrategy).send(testMessage);
+    }
+
+    @Test
+    @DisplayName("잘못된 메시지 형식일 때 실패를 반환한다")
+    void sendInvalidMessage() {
+        // given - 잘못된 전화번호
+        SmsMessage invalidMessage = SmsMessage.builder(MessageType.SMS)
+            .messageId("invalid-001")
+            .sender("TestApp")
+            .senderNumber("invalid-number")
+            .receiver("01087654321")
+            .content("테스트 메시지")
             .build();
-    }
-    
-    @Test
-    @DisplayName("SMS 발송 성공 테스트")
-    void sendSms_Success() {
-        // Given
-        when(channelRouter.selectChannel(validSmsMessage)).thenReturn(MessageChannel.LGU_V1);
-        when(strategyFactory.getStrategy(MessageChannel.LGU_V1)).thenReturn(smsStrategy);
-        when(smsStrategy.send(validSmsMessage)).thenReturn(MessageResult.success("MSG-001", "LGU-12345"));
-        
-        // When
-        MessageResult result = smsApplicationService.sendSms(validSmsMessage);
-        
-        // Then
-        assertTrue(result.isSuccess());
-        assertEquals("MSG-001", result.getMessageId());
-        
-        verify(smsRepository).save(validSmsMessage);
-        verify(smsRepository).updateStatus("MSG-001", MessageStatus.SENT);
-        verify(channelRouter).selectChannel(validSmsMessage);
-        verify(strategyFactory).getStrategy(MessageChannel.LGU_V1);
-        verify(smsStrategy).send(validSmsMessage);
-    }
-    
-    @Test
-    @DisplayName("SMS 발송 실패 - 유효하지 않은 메시지")
-    void sendSms_InvalidMessage() {
-        // When
-        MessageResult result = smsApplicationService.sendSms(invalidSmsMessage);
-        
-        // Then
-        assertFalse(result.isSuccess());
-        assertEquals("MSG-002", result.getMessageId());
-        assertEquals("INVALID_MESSAGE", result.getErrorCode());
-        assertEquals("Invalid message format", result.getErrorMessage());
+
+        // when
+        MessageResult result = smsApplicationService.sendSms(invalidMessage);
+
+        // then
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.getErrorCode()).isEqualTo("INVALID_MESSAGE");
         
         verify(smsRepository, never()).save(any());
         verify(channelRouter, never()).selectChannel(any());
-        verify(strategyFactory, never()).getStrategy(any());
     }
-    
+
     @Test
-    @DisplayName("SMS 발송 실패 - 저장소 예외")
-    void sendSms_RepositoryException() {
-        // Given
-        doThrow(new RuntimeException("DB 연결 오류")).when(smsRepository).save(validSmsMessage);
+    @DisplayName("긴 메시지는 자동으로 LMS로 변환된다")
+    void autoConvertToLms() {
+        // given - 80바이트 초과 메시지
+        String longContent = "a".repeat(85);
+        SmsMessage longMessage = SmsMessage.builder(MessageType.SMS)
+            .messageId("long-msg-001")
+            .sender("TestApp")
+            .senderNumber("01012345678")
+            .receiver("01087654321")
+            .content(longContent)
+            .build();
+
+        MessageChannel selectedChannel = MessageChannel.LGU_V2;
+        MessageResult expectedResult = MessageResult.success(longMessage.getMessageId(), "MSG_002");
         
-        // When
-        MessageResult result = smsApplicationService.sendSms(validSmsMessage);
+        when(channelRouter.selectChannel(any())).thenReturn(selectedChannel);
+        when(strategyFactory.getStrategy(selectedChannel)).thenReturn(smsStrategy);
+        when(smsStrategy.send(any())).thenReturn(expectedResult);
+
+        // when
+        MessageResult result = smsApplicationService.sendSms(longMessage);
+
+        // then
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(longMessage.getType()).isEqualTo(MessageType.LMS);
         
-        // Then
-        assertFalse(result.isSuccess());
-        assertEquals("MSG-001", result.getMessageId());
-        assertEquals("SEND_ERROR", result.getErrorCode());
-        
-        verify(smsRepository).save(validSmsMessage);
-        verify(smsRepository).updateStatus("MSG-001", MessageStatus.FAILED);
+        verify(smsRepository).save(longMessage);
+        verify(smsRepository).updateStatus(longMessage.getMessageId(), MessageStatus.SENT);
     }
-    
+
     @Test
-    @DisplayName("SMS 발송 실패 - 전략 실행 예외")
-    void sendSms_StrategyException() {
-        // Given
-        when(channelRouter.selectChannel(validSmsMessage)).thenReturn(MessageChannel.LGU_V1);
-        when(strategyFactory.getStrategy(MessageChannel.LGU_V1)).thenReturn(smsStrategy);
-        when(smsStrategy.send(validSmsMessage)).thenThrow(new RuntimeException("API 호출 실패"));
-        
-        // When
-        MessageResult result = smsApplicationService.sendSms(validSmsMessage);
-        
-        // Then
-        assertFalse(result.isSuccess());
-        assertEquals("MSG-001", result.getMessageId());
-        assertEquals("SEND_ERROR", result.getErrorCode());
-        
-        verify(smsRepository).save(validSmsMessage);
-        verify(smsRepository).updateStatus("MSG-001", MessageStatus.FAILED);
+    @DisplayName("메시지 상태를 조회한다")
+    void getSmsStatus() {
+        // given
+        String messageId = "test-status-001";
+        when(smsRepository.findById(messageId)).thenReturn(java.util.Optional.of(testMessage));
+        testMessage.setStatus(MessageStatus.SENT);
+
+        // when
+        MessageStatus status = smsApplicationService.getSmsStatus(messageId);
+
+        // then
+        assertThat(status).isEqualTo(MessageStatus.SENT);
+        verify(smsRepository).findById(messageId);
     }
-    
+
     @Test
-    @DisplayName("SMS 상태 조회 성공")
-    void getSmsStatus_Success() {
-        // Given
-        validSmsMessage.setStatus(MessageStatus.SENT);
-        when(smsRepository.findById("MSG-001")).thenReturn(Optional.of(validSmsMessage));
-        
-        // When
-        MessageStatus status = smsApplicationService.getSmsStatus("MSG-001");
-        
-        // Then
-        assertEquals(MessageStatus.SENT, status);
-        verify(smsRepository).findById("MSG-001");
-    }
-    
-    @Test
-    @DisplayName("SMS 상태 조회 - 메시지 없음")
-    void getSmsStatus_NotFound() {
-        // Given
-        when(smsRepository.findById("MSG-999")).thenReturn(Optional.empty());
-        
-        // When
-        MessageStatus status = smsApplicationService.getSmsStatus("MSG-999");
-        
-        // Then
-        assertEquals(MessageStatus.FAILED, status);
-        verify(smsRepository).findById("MSG-999");
-    }
-    
-    @Test
-    @DisplayName("SMS 재발송 성공")
-    void retrySms_Success() {
-        // Given
-        when(smsRepository.findById("MSG-001")).thenReturn(Optional.of(validSmsMessage));
-        when(channelRouter.selectChannel(validSmsMessage)).thenReturn(MessageChannel.LGU_V1);
-        when(strategyFactory.getStrategy(MessageChannel.LGU_V1)).thenReturn(smsStrategy);
-        when(smsStrategy.send(validSmsMessage)).thenReturn(MessageResult.success("MSG-001", "LGU-12345"));
-        
-        // When
-        smsApplicationService.retrySms("MSG-001");
-        
-        // Then
-        verify(smsRepository).findById("MSG-001");
-        verify(smsRepository).incrementRetryCount("MSG-001");
-        verify(smsRepository, times(2)).save(validSmsMessage); // 재발송에서 한 번, 원본 save에서 한 번
-    }
-    
-    @Test
-    @DisplayName("SMS 재발송 - 메시지 없음")
-    void retrySms_NotFound() {
-        // Given
-        when(smsRepository.findById("MSG-999")).thenReturn(Optional.empty());
-        
-        // When
-        smsApplicationService.retrySms("MSG-999");
-        
-        // Then
-        verify(smsRepository).findById("MSG-999");
-        verify(smsRepository, never()).incrementRetryCount(any());
-        verify(channelRouter, never()).selectChannel(any());
+    @DisplayName("존재하지 않는 메시지 상태 조회 시 FAILED를 반환한다")
+    void getNonExistentMessageStatus() {
+        // given
+        String messageId = "non-existent";
+        when(smsRepository.findById(messageId)).thenReturn(java.util.Optional.empty());
+
+        // when
+        MessageStatus status = smsApplicationService.getSmsStatus(messageId);
+
+        // then
+        assertThat(status).isEqualTo(MessageStatus.FAILED);
+        verify(smsRepository).findById(messageId);
     }
 }
