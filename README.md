@@ -1,10 +1,18 @@
 # Message Proxy
 
-통합 메시징 시스템 - SMS, SNS, Email, Push 알림을 통합 관리하는 멀티벤더 메시징 플랫폼
+통합 메시징 시스템 - SMS, SNS, Email, Push 알림을 통합 관리하는 메시징 플랫폼
+
+## 🏗️ 아키텍처 업데이트
+
+**✅ 헥사고날 아키텍처 적용 완료** (SMS 도메인)
+- **포트-어댑터 패턴**: 비즈니스 로직과 외부 의존성 완전 분리
+- **큐 시스템 준비**: 새로운 어댑터 추가만으로 큐 도입 가능
+- **테스트 용이성**: 포트를 Mock으로 교체하여 독립적인 단위 테스트
+- **레거시 호환**: 기존 코드와 100% 호환성 유지
 
 ## 개발 환경
 
-### 요구사항
+### spec
 - Java 17+
 - Spring Boot 3.2.2
 - H2 Database (local)
@@ -26,34 +34,22 @@
 - Username: `sa`
 - Password: (empty)
 
-## API 엔드포인트
-
-### 통합 메시지 발송
-```
-POST /api/messages/send
-```
-
-### 메시지 상태 조회
-```
-GET /api/messages/{messageId}/status?type={messageType}
-```
-
 ## 지원 메시지 타입
 
 ### SMS (단문/장문 메시지)
-- **LGU V1**: 레거시 API 방식, 예약발송 지원, 광고/일반 구분
-- **LGU V2**: REST API 방식, OAuth 인증, JSON 확장 필드 지원
-- **MTS**: 통신사별 코드 관리, 업체별 과금 처리
+- **LGU V1**: DB 저장 방식, 알림톡 미지원, 해외발송 지원
+- **LGU V2**: DB 저장 방식, 알림톡 지원 , 해외발송 미지원, LG U+ 백오피스 제공
+- **MTS**: DB 저장 방식, 알림톡 지원, 해외발송 미지원
 
 ### SNS (소셜 네트워크 서비스)
 - **Discord**: 웹훅 기반 메시지 발송, Embed 지원
 
 ### Email
-- **SMTP**: 표준 SMTP 프로토콜 지원
+- **SMTP**: 사내 SMTP서버 활용
 
 ## 아키텍처
 
-### Domain-Driven Hexagonal Architecture
+### Hexagonal Architecture (포트-어댑터 패턴)
 
 ```
 com.bwc.messaging/
@@ -68,21 +64,51 @@ com.bwc.messaging/
 │       ├── config/          # 설정 클래스
 │       └── persistence/     # 공통 엔티티 및 리포지토리
 │
-├── sms/                      # SMS 도메인
-│   ├── domain/              # SMS 도메인 모델
+├── sms/                      # SMS 도메인 (헥사고날 아키텍처 적용)
+│   ├── domain/              # 도메인 레이어 (순수 비즈니스 로직)
 │   │   ├── SmsMessage.java  # SMS 메시지 도메인 객체
-│   │   └── SmsRepository.java # SMS 리포지토리 인터페이스
-│   ├── application/         # SMS 애플리케이션 서비스
-│   │   ├── SmsApplicationService.java # 메인 비즈니스 로직
-│   │   ├── SmsChannelRouter.java      # 발송사별 채널 라우팅
-│   │   └── strategy/        # 전략 패턴 구현
+│   │   └── SmsRepository.java # 도메인 리포지토리 인터페이스
+│   │
+│   ├── application/         # 애플리케이션 레이어 (Use Case & Ports)
+│   │   ├── port/           # 포트 인터페이스 정의
+│   │   │   ├── in/         # 인바운드 포트 (Use Cases)
+│   │   │   │   ├── SendSmsUseCase.java       # SMS 발송 Use Case
+│   │   │   │   ├── GetSmsStatusUseCase.java  # SMS 상태 조회 Use Case
+│   │   │   │   ├── RetrySmsUseCase.java      # SMS 재전송 Use Case
+│   │   │   │   ├── SendSmsCommand.java       # SMS 발송 명령
+│   │   │   │   ├── GetSmsStatusQuery.java    # SMS 상태 조회 쿼리
+│   │   │   │   └── RetrySmsCommand.java      # SMS 재전송 명령
+│   │   │   └── out/        # 아웃바운드 포트 (외부 의존성 추상화)
+│   │   │       ├── SmsRepositoryPort.java    # 데이터 저장소 포트
+│   │   │       └── SmsVendorPort.java        # SMS 벤더 포트
+│   │   │
+│   │   ├── service/        # 애플리케이션 서비스 (Use Case 구현)
+│   │   │   └── SmsService.java               # SMS Use Case 구현체
+│   │   │
+│   │   ├── SmsChannelRouter.java      # 발송사별 채널 라우팅 (레거시)
+│   │   └── strategy/        # 전략 패턴 구현 (레거시, Adapter에서 활용)
 │   │       ├── SmsStrategy.java           # 전략 인터페이스
 │   │       ├── SmsStrategyFactory.java    # 전략 팩토리
 │   │       └── impl/        # 발송사별 전략 구현
 │   │           ├── LguV1SmsStrategy.java  # LGU V1 전략
 │   │           ├── LguV2SmsStrategy.java  # LGU V2 전략
 │   │           └── MtsSmsStrategy.java    # MTS 전략
-│   └── infrastructure/      # SMS 인프라
+│   │
+│   ├── adapter/            # 어댑터 레이어 (포트 구현체)
+│   │   ├── in/            # 인바운드 어댑터 (외부 → 내부)
+│   │   │   └── web/       # 웹 어댑터
+│   │   │       ├── SmsWebAdapter.java        # HTTP 요청 처리
+│   │   │       └── dto/   # 웹 계층 DTO
+│   │   │           ├── SmsRequest.java       # SMS 발송 요청 DTO
+│   │   │           └── SmsResponse.java      # SMS 발송 응답 DTO
+│   │   │
+│   │   └── out/           # 아웃바운드 어댑터 (내부 → 외부)
+│   │       ├── persistence/  # 데이터 저장소 어댑터
+│   │       │   └── SmsRepositoryAdapter.java # 레거시 Repository 래핑
+│   │       └── vendor/    # 외부 벤더 어댑터
+│   │           └── SmsVendorAdapter.java     # 레거시 Strategy 래핑
+│   │
+│   └── infrastructure/      # 인프라 레이어 (기술적 구현)
 │       └── persistence/     # 발송사별 전용 테이블 및 JPA 구현
 │           ├── lgu/         # LGU 관련
 │           │   ├── v1/      # LGU V1 전용
@@ -142,13 +168,119 @@ com.bwc.messaging/
         └── dto/          # 요청/응답 DTO
 ```
 
-### 핵심 설계 원칙
+### 헥사고날 아키텍처 핵심 원칙
 
-1. **Hexagonal Architecture**: 각 도메인은 Port(인터페이스)와 Adapter(구현체)로 분리
-2. **Strategy Pattern**: 각 메시지 타입별로 다양한 발송 업체 지원
-3. **Facade Pattern**: 단일 진입점을 통한 통합 API 제공
-4. **Domain-Driven Design**: 도메인별 경계 명확히 구분
-5. **Multi-Vendor Support**: 발송사별 전용 테이블과 최적화된 데이터 구조
+#### 1. **의존성 역전 (Dependency Inversion)**
+```java
+// ❌ 기존: Application이 Infrastructure에 직접 의존
+@Service
+public class SmsApplicationService {
+    private final SmsRepository smsRepository;           // 구체 클래스 의존
+    private final SmsStrategyFactory strategyFactory;   // 구체 클래스 의존
+}
+
+// ✅ 헥사고날: Application이 Port(추상화)에만 의존
+@Service 
+public class SmsService implements SendSmsUseCase {
+    private final SmsRepositoryPort repositoryPort;  // 포트(인터페이스) 의존
+    private final SmsVendorPort vendorPort;          // 포트(인터페이스) 의존
+}
+```
+
+#### 2. **포트-어댑터 패턴 (Ports & Adapters)**
+
+**인바운드 포트 (Use Cases)**: 외부에서 애플리케이션으로 들어오는 요청
+- `SendSmsUseCase`: SMS 발송 비즈니스 로직
+- `GetSmsStatusUseCase`: SMS 상태 조회 비즈니스 로직  
+- `RetrySmsUseCase`: SMS 재전송 비즈니스 로직
+
+**아웃바운드 포트**: 애플리케이션에서 외부로 나가는 요청
+- `SmsRepositoryPort`: 데이터 저장소 추상화
+- `SmsVendorPort`: 외부 SMS 벤더 추상화
+
+**어댑터**: 포트의 구체적인 구현체
+- `SmsWebAdapter`: HTTP 요청을 Use Case 호출로 변환
+- `SmsRepositoryAdapter`: 레거시 Repository를 포트로 래핑
+- `SmsVendorAdapter`: 레거시 Strategy 패턴을 포트로 래핑
+
+#### 3. **큐 시스템 도입 준비 완료**
+
+**WAS 앞단 큐 (API → Queue → WAS)**:
+```java
+// 새로운 어댑터만 추가, 기존 코드 변경 없음
+@Component
+public class SmsQueueAdapter {
+    @RabbitListener(queues = "sms.queue")
+    public void handleSms(SmsMessage message) {
+        SendSmsCommand command = SendSmsCommand.from(message);
+        sendSmsUseCase.sendSms(command);  // 기존 Use Case 재사용
+    }
+}
+```
+
+**WAS 뒤 큐 (WAS → Queue → 외부 API)**:
+```java
+// 새로운 어댑터만 추가, 기존 코드 변경 없음
+@Component
+public class QueuedSmsVendorAdapter implements SmsVendorPort {
+    public MessageResult send(SmsMessage message) {
+        rabbitTemplate.send("sms.vendor.queue", message);
+        return MessageResult.pending(message.getMessageId());
+    }
+}
+```
+
+#### 4. **테스트 용이성**
+```java
+// 포트를 Mock으로 쉽게 교체 가능
+@ExtendWith(MockitoExtension.class)
+class SmsServiceTest {
+    @Mock private SmsRepositoryPort repositoryPort;
+    @Mock private SmsVendorPort vendorPort;
+    
+    @Test
+    void testSendSms() {
+        // Given
+        when(vendorPort.send(any())).thenReturn(success());
+        
+        // When  
+        MessageResult result = smsService.sendSms(command);
+        
+        // Then
+        verify(repositoryPort).save(any());
+        verify(vendorPort).send(any());
+    }
+}
+```
+
+#### 5. **기존 레거시 코드 완전 보존**
+- ✅ **Domain Layer**: `SmsMessage`, `SmsRepository` 그대로 유지
+- ✅ **Infrastructure Layer**: 모든 JPA 구현체 그대로 유지  
+- ✅ **Strategy Pattern**: `SmsStrategy`, `SmsStrategyFactory` 재사용
+- ✅ **Database Schema**: 모든 테이블 구조 그대로 유지
+
+#### 6. **점진적 마이그레이션 지원**
+```java
+// 기존 API와 새로운 API 공존 가능
+@Deprecated
+@Service 
+public class SmsApplicationService {  // 레거시 API 유지
+    // 기존 코드...
+}
+
+@Service
+public class SmsService implements SendSmsUseCase {  // 새로운 헥사고날 API
+    // 새로운 구조...
+}
+```
+
+#### 7. **설계 원칙 요약**
+1. **Hexagonal Architecture**: 비즈니스 로직과 외부 의존성 완전 분리
+2. **CQRS**: Command(변경)와 Query(조회) 분리된 인터페이스
+3. **Strategy Pattern**: 발송사별 전략을 Adapter에서 재사용
+4. **Facade Pattern**: 통합 API 진입점 유지 (`MessageFacade`)
+5. **Domain-Driven Design**: 도메인별 경계 명확히 구분
+6. **Multi-Vendor Support**: 발송사별 전용 테이블과 최적화된 데이터 구조
 
 ### SMS 발송사별 테이블 구조
 
@@ -222,45 +354,6 @@ return MessageChannel.LGU_V1; // 기본값
 
 ## 테스트
 
-### 테스트 구조
-프로젝트는 포괄적인 테스트 커버리지(80% 이상)를 목표로 다음과 같은 테스트를 포함합니다:
-
-#### 1. 단위 테스트 (Unit Tests)
-```bash
-# SMS 모듈 단위 테스트
-src/test/java/com/bwc/messaging/sms/
-├── application/
-│   ├── SmsApplicationServiceTest.java      # 비즈니스 로직 테스트
-│   ├── SmsChannelRouterTest.java           # 채널 라우팅 테스트
-│   └── strategy/
-│       ├── SmsStrategyFactoryTest.java     # 전략 팩토리 테스트
-│       └── impl/
-│           └── LguV1SmsStrategyTest.java   # LGU V1 전략 테스트
-├── domain/
-│   └── SmsMessageTest.java                 # 도메인 객체 테스트
-└── infrastructure/
-    └── persistence/
-        └── SmsRepositoryImplTest.java      # Repository 구현체 테스트
-```
-
-#### 2. 통합 테스트 (Integration Tests)
-```bash
-# 발송사별 데이터베이스 통합 테스트
-src/test/java/com/bwc/messaging/sms/infrastructure/persistence/
-└── SmsVendorRepositoryIntegrationTest.java  # H2 DB 실제 저장 테스트
-
-# 발송사별 전략 통합 테스트
-src/test/java/com/bwc/messaging/sms/application/strategy/
-└── SmsVendorStrategyIntegrationTest.java    # 전략 + DB 통합 테스트
-```
-
-#### 3. End-to-End 테스트
-```bash
-# 전체 플로우 E2E 테스트
-src/test/java/com/bwc/messaging/sms/application/
-└── SmsApplicationServiceEndToEndTest.java   # 라우팅 → 전략 → DB 저장 전체 플로우
-```
-
 ### 테스트 실행
 
 #### 로컬 테스트 (H2 Database)
@@ -271,7 +364,10 @@ src/test/java/com/bwc/messaging/sms/application/
 # SMS 모듈만 테스트
 ./gradlew test --tests "com.bwc.messaging.sms.*"
 
-# 특정 테스트 클래스 실행
+# 헥사고날 아키텍처 테스트 실행
+./gradlew test --tests "SmsServiceTest"
+
+# 레거시 테스트 실행 (호환성 확인)
 ./gradlew test --tests "SmsApplicationServiceTest"
 
 # 테스트 커버리지 포함
@@ -321,12 +417,30 @@ spring:
 
 ### 테스트 검증 항목
 
-#### 발송사별 테이블 저장 검증
+#### 헥사고날 아키텍처 검증
+- ✅ **Use Case 테스트**: `SmsServiceTest` - 모든 Use Case 시나리오 검증
+- ✅ **포트 의존성**: Application Core가 포트(인터페이스)에만 의존하는지 검증
+- ✅ **어댑터 분리**: Inbound/Outbound 어댑터가 올바르게 포트를 구현하는지 검증
+- ✅ **Mock 테스트**: 포트를 Mock으로 교체하여 단위 테스트 가능한지 검증
+- ✅ **의존성 역전**: Infrastructure가 Application에 의존하는지 검증
+
+#### Use Case별 검증
+- ✅ **SendSmsUseCase**: SMS 발송 명령 처리 및 결과 반환
+- ✅ **GetSmsStatusUseCase**: SMS 상태 조회 쿼리 처리
+- ✅ **RetrySmsUseCase**: SMS 재전송 명령 처리
+- ✅ **Command/Query 분리**: 변경과 조회 인터페이스 분리 검증
+
+#### 어댑터 검증
+- ✅ **SmsWebAdapter**: HTTP 요청을 Command/Query로 변환
+- ✅ **SmsRepositoryAdapter**: 레거시 Repository를 포트로 래핑
+- ✅ **SmsVendorAdapter**: 레거시 Strategy를 포트로 래핑
+
+#### 발송사별 테이블 저장 검증 (레거시 호환성)
 - ✅ **LGU V1**: `TB_LGU_V1_SMS_MESSAGE` 테이블에 LGU V1 전용 필드 저장
 - ✅ **LGU V2**: `TB_LGU_V2_SMS_MESSAGE` 테이블에 LGU V2 전용 필드 저장  
 - ✅ **MTS**: `TB_MTS_SMS_MESSAGE` 테이블에 MTS 전용 필드 저장
 
-#### 채널 라우팅 검증
+#### 채널 라우팅 검증 (레거시 호환성)
 - ✅ **LGU 서비스 코드** → LGU V1/V2 채널 선택
 - ✅ **메시지 길이** → LGU V1(짧음) vs V2(긺) 자동 선택
 - ✅ **MTS 서비스 코드** → MTS 채널 선택
@@ -337,6 +451,13 @@ spring:
 - ✅ **상태 관리** (PENDING → SENT → DELIVERED)
 - ✅ **재시도 로직** (실패 시 재발송)
 - ✅ **에러 처리** (유효하지 않은 메시지, DB 오류 등)
+- ✅ **메시지 타입 자동 결정** (SMS → LMS 변환)
+
+#### 통합 테스트 검증
+- ✅ **서버 시작**: Spring Boot 애플리케이션 정상 시작
+- ✅ **Bean 주입**: 모든 헥사고날 컴포넌트 의존성 주입 성공
+- ✅ **API 호출**: 새로운 SMS API 엔드포인트 정상 작동
+- ✅ **레거시 호환**: 기존 통합 API(`MessageFacade`) 정상 작동
 
 ## 설정
 
@@ -348,44 +469,4 @@ spring:
   "content": "메시지 내용",
   "isEmbed": true
 }
-```
-
-## 데이터베이스
-
-### 기술 스택
-- **JPA + Hibernate**: ORM 프레임워크
-- **Spring Data JPA**: Repository 추상화
-- **H2**: 로컬 개발 및 테스트용 인메모리 DB
-- **Multi-Database Support**: 발송사별 전용 데이터베이스 지원
-
-### 발송사별 테이블 전략
-각 SMS 발송사는 독립적인 테이블을 사용하여 최적화된 데이터 구조를 제공합니다:
-
-- **LGU V1**: 레거시 API 전용 필드 (예약발송, 광고구분 등)
-- **LGU V2**: REST API 전용 필드 (OAuth, JSON 확장 등)  
-- **MTS**: 통신사/과금 전용 필드 (업체코드, 과금타입 등)
-
-### 환경별 데이터베이스 설정
-
-#### 로컬 개발 (H2)
-```yaml
-spring:
-  datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-  h2:
-    console:
-      enabled: true
-```
-
-#### 운영 환경 (멀티 DB)
-```yaml
-spring:
-  datasource:
-    lgu-v1:
-      jdbc-url: jdbc:oracle:thin:@lgu-db:1521:LGUDB
-    lgu-v2:  
-      jdbc-url: jdbc:postgresql://lgu2-db:5432/lgu2db
-    mts:
-      jdbc-url: jdbc:sqlserver://mts-db:1433;databaseName=mtsdb
 ```

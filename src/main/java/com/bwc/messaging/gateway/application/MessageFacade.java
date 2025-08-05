@@ -7,8 +7,9 @@ import com.bwc.messaging.gateway.presentation.dto.UnifiedMessageResponse;
 import com.bwc.messaging.shared.domain.MessageResult;
 import com.bwc.messaging.shared.domain.MessageStatus;
 import com.bwc.messaging.shared.domain.MessageType;
-import com.bwc.messaging.sms.application.SmsApplicationService;
-import com.bwc.messaging.email.application.EmailApplicationService;
+import com.bwc.messaging.sms.application.port.in.*;
+import com.bwc.messaging.email.application.port.in.*;
+import com.bwc.messaging.sns.application.port.in.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,9 +23,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MessageFacade {
     
-    private final SmsApplicationService smsService;
-    private final com.bwc.messaging.sns.application.SnsApplicationService snsService;
-    private final EmailApplicationService emailService;
+    private final SendSmsUseCase sendSmsUseCase;
+    private final GetSmsStatusUseCase getSmsStatusUseCase;
+    private final SendEmailUseCase sendEmailUseCase;
+    private final GetEmailStatusUseCase getEmailStatusUseCase;
+    private final SendSnsUseCase sendSnsUseCase;
+    private final GetSnsStatusUseCase getSnsStatusUseCase;
     // TODO: PushApplicationService 추가
     
     public UnifiedMessageResponse sendMessage(UnifiedMessageRequest request) {
@@ -50,9 +54,9 @@ public class MessageFacade {
     
     public MessageStatus getMessageStatus(String messageId, MessageType messageType) {
         return switch (messageType) {
-            case SMS, LMS, MMS -> smsService.getSmsStatus(messageId);
-            case EMAIL -> getEmailStatus(messageId);
-            case KAKAO_TALK, KAKAO_ALIM_TALK, KAKAO_FRIEND_TALK, LINE, FACEBOOK_MESSENGER -> getSnsStatus(messageId);
+            case SMS, LMS, MMS -> getSmsStatusUseCase.getSmsStatus(GetSmsStatusQuery.builder().messageId(messageId).build());
+            case EMAIL -> getEmailStatusUseCase.getEmailStatus(GetEmailStatusQuery.builder().messageId(messageId).build());
+            case KAKAO_TALK, KAKAO_ALIM_TALK, KAKAO_FRIEND_TALK, LINE, FACEBOOK_MESSENGER -> getSnsStatusUseCase.getSnsStatus(GetSnsStatusQuery.builder().messageId(messageId).build());
             case PUSH_NOTIFICATION -> getPushStatus(messageId);
             default -> MessageStatus.FAILED;
         };
@@ -60,17 +64,20 @@ public class MessageFacade {
     
     private MessageResult sendSmsMessage(UnifiedMessageRequest request) {
         var smsMessage = request.toSmsMessage();
-        return smsService.sendSms(smsMessage);
+        SendSmsCommand command = SendSmsCommand.from(smsMessage);
+        return sendSmsUseCase.sendSms(command);
     }
     
     private MessageResult sendEmailMessage(UnifiedMessageRequest request) {
         var emailMessage = request.toEmailMessage();
-        return emailService.sendEmail(emailMessage);
+        SendEmailCommand command = SendEmailCommand.from(emailMessage);
+        return sendEmailUseCase.sendEmail(command);
     }
     
     private MessageResult sendSnsMessage(UnifiedMessageRequest request) {
         var snsMessage = request.toSnsMessage();
-        return snsService.sendSns(snsMessage);
+        SendSnsCommand command = SendSnsCommand.from(snsMessage);
+        return sendSnsUseCase.sendSns(command);
     }
     
     private MessageResult sendPushMessage(UnifiedMessageRequest request) {
@@ -79,13 +86,6 @@ public class MessageFacade {
         return MessageResult.failure(request.getMessageId(), "NOT_IMPLEMENTED", "Push service not implemented");
     }
     
-    private MessageStatus getEmailStatus(String messageId) {
-        return emailService.getEmailStatus(messageId);
-    }
-    
-    private MessageStatus getSnsStatus(String messageId) {
-        return snsService.getSnsStatus(messageId);
-    }
     
     private MessageStatus getPushStatus(String messageId) {
         // TODO: Push 상태 조회 구현

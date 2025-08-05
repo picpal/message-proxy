@@ -12,6 +12,10 @@ import com.bwc.messaging.sns.domain.SnsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * @deprecated 헥사고날 아키텍처 적용으로 SnsService로 대체 예정
+ */
+@Deprecated
 @Service
 @RequiredArgsConstructor
 @Slf4j
