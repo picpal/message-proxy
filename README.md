@@ -4,8 +4,9 @@
 
 ## 🏗️ 아키텍처 업데이트
 
-**✅ 헥사고날 아키텍처 적용 완료** (SMS 도메인)
+**✅ 헥사고날 아키텍처 적용 완료** (SMS, Email, SNS 도메인)
 - **포트-어댑터 패턴**: 비즈니스 로직과 외부 의존성 완전 분리
+- **일관된 구조**: 모든 메시징 도메인이 동일한 hexagonal 패턴 적용
 - **큐 시스템 준비**: 새로운 어댑터 추가만으로 큐 도입 가능
 - **테스트 용이성**: 포트를 Mock으로 교체하여 독립적인 단위 테스트
 - **레거시 호환**: 기존 코드와 100% 호환성 유지
@@ -52,17 +53,30 @@
 ### Hexagonal Architecture (포트-어댑터 패턴)
 
 ```
-com.bwc.messaging/
-├── shared/                    # 공통 도메인 및 인프라
-│   ├── domain/               # 공통 도메인 모델
-│   │   ├── Message.java      # 기본 메시지 추상 클래스
-│   │   ├── MessageType.java  # 메시지 타입 열거형
-│   │   ├── MessageChannel.java # 발송 채널 열거형
-│   │   ├── MessageStatus.java  # 메시지 상태 열거형
-│   │   └── MessageResult.java  # 발송 결과 모델
-│   └── infrastructure/       # 공통 인프라
-│       ├── config/          # 설정 클래스
-│       └── persistence/     # 공통 엔티티 및 리포지토리
+com.bwc/
+├── common/                    # 공통 유틸리티 및 인프라
+│   ├── auth/                 # 인증 관련 유틸리티
+│   ├── crypt/                # 암호화 유틸리티
+│   ├── util/                 # 범용 유틸리티
+│   └── vo/                   # 공통 Value Object
+│
+├── messaging/                # 메시징 도메인
+│   ├── shared/               # 메시징 공통 도메인 및 인프라
+│   │   ├── domain/          # 공통 도메인 모델
+│   │   │   ├── Message.java      # 기본 메시지 추상 클래스
+│   │   │   ├── MessageType.java  # 메시지 타입 열거형
+│   │   │   ├── MessageChannel.java # 발송 채널 열거형
+│   │   │   ├── MessageStatus.java  # 메시지 상태 열거형
+│   │   │   └── MessageResult.java  # 발송 결과 모델
+│   │   ├── application/     # 공통 애플리케이션 서비스
+│   │   │   └── MessageSender.java  # 통합 메시지 발송자
+│   │   └── infrastructure/  # 공통 인프라
+│   │       ├── config/      # 메시징 설정 클래스
+│   │       └── persistence/ # 공통 엔티티 및 리포지토리
+│   │           ├── MessageLogEntity.java    # 메시지 로그 엔티티
+│   │           ├── MessageLogRepository.java # 메시지 로그 리포지토리
+│   │           ├── ServiceLinkEntity.java   # 서비스 연동 엔티티
+│   │           └── ServiceLinkRepository.java # 서비스 연동 리포지토리
 │
 ├── sms/                      # SMS 도메인 (헥사고날 아키텍처 적용)
 │   ├── domain/              # 도메인 레이어 (순수 비즈니스 로직)
@@ -124,39 +138,92 @@ com.bwc.messaging/
 │               ├── MtsMessageJpaRepository.java # MTS JPA
 │               └── MtsSmsRepositoryImpl.java    # MTS 구현체
 │
-├── sns/                     # SNS 도메인 (Discord, Kakao, Line 등)
-│   ├── domain/             # SNS 도메인 모델
-│   │   ├── SnsMessage.java # SNS 메시지 엔티티
-│   │   ├── SnsField.java   # SNS 필드 (Embed용)
-│   │   ├── SnsButton.java  # SNS 버튼
-│   │   └── SnsRepository.java # SNS 리포지토리 인터페이스
-│   ├── application/        # SNS 애플리케이션 서비스
-│   │   ├── SnsApplicationService.java # 메인 서비스
-│   │   ├── SnsChannelRouter.java      # 채널 라우팅
-│   │   └── strategy/       # 전략 패턴 구현
+├── sns/                      # SNS 도메인 (헥사고날 아키텍처 적용)
+│   ├── domain/              # 도메인 레이어 (순수 비즈니스 로직)
+│   │   ├── SnsMessage.java  # SNS 메시지 도메인 객체
+│   │   ├── SnsField.java    # SNS 필드 (Embed용)
+│   │   ├── SnsButton.java   # SNS 버튼
+│   │   └── SnsRepository.java # 도메인 리포지토리 인터페이스
+│   │
+│   ├── application/         # 애플리케이션 레이어 (Use Case & Ports)
+│   │   ├── port/           # 포트 인터페이스 정의
+│   │   │   ├── in/         # 인바운드 포트 (Use Cases)
+│   │   │   │   ├── SendSnsUseCase.java       # SNS 발송 Use Case
+│   │   │   │   ├── GetSnsStatusUseCase.java  # SNS 상태 조회 Use Case
+│   │   │   │   ├── SendSnsCommand.java       # SNS 발송 명령
+│   │   │   │   └── GetSnsStatusQuery.java    # SNS 상태 조회 쿼리
+│   │   │   └── out/        # 아웃바운드 포트 (외부 의존성 추상화)
+│   │   │       ├── SnsRepositoryPort.java    # 데이터 저장소 포트
+│   │   │       └── SnsVendorPort.java        # SNS 벤더 포트
+│   │   │
+│   │   ├── service/        # 애플리케이션 서비스 (Use Case 구현)
+│   │   │   └── SnsService.java               # SNS Use Case 구현체
+│   │   │
+│   │   ├── SnsApplicationService.java # 메인 서비스 (@Deprecated)
+│   │   ├── SnsChannelRouter.java      # 채널 라우팅 (레거시)
+│   │   └── strategy/       # 전략 패턴 구현 (레거시, Adapter에서 활용)
 │   │       ├── SnsStrategy.java       # 전략 인터페이스
 │   │       ├── SnsStrategyFactory.java # 전략 팩토리
 │   │       └── DiscordSnsStrategy.java # Discord 구현
-│   └── infrastructure/     # SNS 인프라
-│       ├── external/       # 외부 API 클라이언트
-│       │   ├── discord/    # Discord API 클라이언트
-│       │   ├── slack/      # Slack API (예정)
-│       │   └── teams/      # Teams API (예정)
-│       └── persistence/    # JPA 리포지토리 구현
+│   │
+│   ├── adapter/            # 어댑터 레이어 (포트 구현체)
+│   │   ├── in/            # 인바운드 어댑터 (외부 → 내부)
+│   │   │   └── web/       # 웹 어댑터
+│   │   │       └── SnsWebAdapter.java        # HTTP 요청 처리
+│   │   └── out/           # 아웃바운드 어댑터 (내부 → 외부)
+│   │       ├── persistence/  # 데이터 저장소 어댑터
+│   │       │   └── SnsRepositoryAdapter.java # 레거시 Repository 래핑
+│   │       └── vendor/    # 외부 벤더 어댑터
+│   │           └── SnsVendorAdapter.java     # 레거시 Strategy 래핑
+│   │
+│   ├── infrastructure/     # 인프라 레이어 (기술적 구현)
+│   │   ├── external/       # 외부 API 클라이언트
+│   │   │   ├── discord/    # Discord API 클라이언트
+│   │   │   ├── slack/      # Slack API (예정)
+│   │   │   └── teams/      # Teams API (예정)
+│   │   └── persistence/    # JPA 리포지토리 구현
+│   │
+│   └── presentation/       # 프레젠테이션 레이어 (독립적 API)
+│       └── controller/     # REST 컨트롤러 (독립 SNS API용)
 │
-├── email/                  # Email 도메인
-│   ├── domain/            # Email 도메인 모델
-│   │   ├── EmailMessage.java    # Email 메시지 엔티티
+├── email/                   # Email 도메인 (헥사고날 아키텍처 적용)
+│   ├── domain/             # 도메인 레이어 (순수 비즈니스 로직)
+│   │   ├── EmailMessage.java    # Email 메시지 도메인 객체
 │   │   ├── EmailAttachment.java # 첨부파일 모델
-│   │   └── EmailRepository.java # Email 리포지토리 인터페이스
-│   ├── application/       # Email 애플리케이션 서비스
-│   │   ├── EmailApplicationService.java # 메인 서비스
-│   │   ├── EmailChannelRouter.java      # 채널 라우팅
-│   │   └── strategy/      # 전략 패턴 구현
+│   │   └── EmailRepository.java # 도메인 리포지토리 인터페이스
+│   │
+│   ├── application/        # 애플리케이션 레이어 (Use Case & Ports)
+│   │   ├── port/          # 포트 인터페이스 정의
+│   │   │   ├── in/        # 인바운드 포트 (Use Cases)
+│   │   │   │   ├── SendEmailUseCase.java       # Email 발송 Use Case
+│   │   │   │   ├── GetEmailStatusUseCase.java  # Email 상태 조회 Use Case
+│   │   │   │   ├── SendEmailCommand.java       # Email 발송 명령
+│   │   │   │   └── GetEmailStatusQuery.java    # Email 상태 조회 쿼리
+│   │   │   └── out/       # 아웃바운드 포트 (외부 의존성 추상화)
+│   │   │       ├── EmailRepositoryPort.java    # 데이터 저장소 포트
+│   │   │       └── EmailVendorPort.java        # Email 벤더 포트
+│   │   │
+│   │   ├── service/       # 애플리케이션 서비스 (Use Case 구현)
+│   │   │   └── EmailService.java               # Email Use Case 구현체
+│   │   │
+│   │   ├── EmailApplicationService.java # 메인 서비스 (@Deprecated)
+│   │   ├── EmailChannelRouter.java      # 채널 라우팅 (레거시)
+│   │   └── strategy/      # 전략 패턴 구현 (레거시, Adapter에서 활용)
 │   │       ├── EmailStrategy.java       # 전략 인터페이스
 │   │       ├── EmailStrategyFactory.java # 전략 팩토리
 │   │       └── impl/      # SMTP, Gmail API 등 구현
-│   └── infrastructure/    # Email 인프라
+│   │
+│   ├── adapter/           # 어댑터 레이어 (포트 구현체)
+│   │   ├── in/           # 인바운드 어댑터 (외부 → 내부)
+│   │   │   └── web/      # 웹 어댑터
+│   │   │       └── EmailWebAdapter.java       # HTTP 요청 처리
+│   │   └── out/          # 아웃바운드 어댑터 (내부 → 외부)
+│   │       ├── persistence/  # 데이터 저장소 어댑터
+│   │       │   └── EmailRepositoryAdapter.java # 레거시 Repository 래핑
+│   │       └── vendor/   # 외부 벤더 어댑터
+│   │           └── EmailVendorAdapter.java     # 레거시 Strategy 래핑
+│   │
+│   └── infrastructure/    # 인프라 레이어 (기술적 구현)
 │       ├── external/      # SMTP, Gmail API 클라이언트
 │       └── persistence/   # JPA 리포지토리 구현
 │
@@ -165,7 +232,10 @@ com.bwc.messaging/
     │   └── MessageFacade.java # 통합 메시지 파사드
     └── presentation/      # REST API 계층
         ├── controller/    # REST 컨트롤러
+        │   └── MessageController.java # 통합 메시지 API
         └── dto/          # 요청/응답 DTO
+            ├── UnifiedMessageRequest.java  # 통합 메시지 요청 DTO
+            └── UnifiedMessageResponse.java # 통합 메시지 응답 DTO
 ```
 
 ### 헥사고날 아키텍처 핵심 원칙
@@ -417,23 +487,47 @@ spring:
 
 ### 테스트 검증 항목
 
-#### 헥사고날 아키텍처 검증
-- ✅ **Use Case 테스트**: `SmsServiceTest` - 모든 Use Case 시나리오 검증
+#### 헥사고날 아키텍처 검증 (SMS, Email, SNS 공통)
+- ✅ **Use Case 테스트**: 모든 도메인의 Use Case 시나리오 검증
+  - `SmsServiceTest` - SMS 발송, 상태 조회, 재전송 Use Case
+  - `EmailServiceTest` - Email 발송, 상태 조회 Use Case  
+  - `SnsServiceTest` - SNS 발송, 상태 조회 Use Case
 - ✅ **포트 의존성**: Application Core가 포트(인터페이스)에만 의존하는지 검증
 - ✅ **어댑터 분리**: Inbound/Outbound 어댑터가 올바르게 포트를 구현하는지 검증
 - ✅ **Mock 테스트**: 포트를 Mock으로 교체하여 단위 테스트 가능한지 검증
 - ✅ **의존성 역전**: Infrastructure가 Application에 의존하는지 검증
 
-#### Use Case별 검증
+#### Use Case별 검증 (일관된 구조)
+**SMS 도메인:**
 - ✅ **SendSmsUseCase**: SMS 발송 명령 처리 및 결과 반환
 - ✅ **GetSmsStatusUseCase**: SMS 상태 조회 쿼리 처리
 - ✅ **RetrySmsUseCase**: SMS 재전송 명령 처리
-- ✅ **Command/Query 분리**: 변경과 조회 인터페이스 분리 검증
 
-#### 어댑터 검증
-- ✅ **SmsWebAdapter**: HTTP 요청을 Command/Query로 변환
-- ✅ **SmsRepositoryAdapter**: 레거시 Repository를 포트로 래핑
-- ✅ **SmsVendorAdapter**: 레거시 Strategy를 포트로 래핑
+**Email 도메인:**
+- ✅ **SendEmailUseCase**: Email 발송 명령 처리 및 결과 반환
+- ✅ **GetEmailStatusUseCase**: Email 상태 조회 쿼리 처리
+
+**SNS 도메인:**
+- ✅ **SendSnsUseCase**: SNS 발송 명령 처리 및 결과 반환
+- ✅ **GetSnsStatusUseCase**: SNS 상태 조회 쿼리 처리
+
+- ✅ **Command/Query 분리**: 모든 도메인에서 변경과 조회 인터페이스 분리 검증
+
+#### 어댑터 검증 (일관된 패턴)
+**Web 어댑터 (Inbound):**
+- ✅ **SmsWebAdapter**: HTTP 요청을 SMS Command/Query로 변환
+- ✅ **EmailWebAdapter**: HTTP 요청을 Email Command/Query로 변환  
+- ✅ **SnsWebAdapter**: HTTP 요청을 SNS Command/Query로 변환
+
+**Repository 어댑터 (Outbound):**
+- ✅ **SmsRepositoryAdapter**: 레거시 SMS Repository를 포트로 래핑
+- ✅ **EmailRepositoryAdapter**: 레거시 Email Repository를 포트로 래핑
+- ✅ **SnsRepositoryAdapter**: 레거시 SNS Repository를 포트로 래핑
+
+**Vendor 어댑터 (Outbound):**
+- ✅ **SmsVendorAdapter**: 레거시 SMS Strategy를 포트로 래핑
+- ✅ **EmailVendorAdapter**: 레거시 Email Strategy를 포트로 래핑
+- ✅ **SnsVendorAdapter**: 레거시 SNS Strategy를 포트로 래핑
 
 #### 발송사별 테이블 저장 검증 (레거시 호환성)
 - ✅ **LGU V1**: `TB_LGU_V1_SMS_MESSAGE` 테이블에 LGU V1 전용 필드 저장
@@ -454,10 +548,20 @@ spring:
 - ✅ **메시지 타입 자동 결정** (SMS → LMS 변환)
 
 #### 통합 테스트 검증
-- ✅ **서버 시작**: Spring Boot 애플리케이션 정상 시작
+- ✅ **서버 시작**: Spring Boot 애플리케이션 정상 시작 (포트 8080)
 - ✅ **Bean 주입**: 모든 헥사고날 컴포넌트 의존성 주입 성공
-- ✅ **API 호출**: 새로운 SMS API 엔드포인트 정상 작동
+  - SMS/Email/SNS 모든 Use Case 및 Port 구현체 정상 등록
+  - 기존 레거시 Service들과 새로운 헥사고날 Service 공존
+- ✅ **API 호출**: 새로운 헥사고날 API 엔드포인트 정상 작동
+  - SMS 도메인별 API (LGU V1/V2, MTS)
+  - Email SMTP API
+  - SNS Discord/Slack API
 - ✅ **레거시 호환**: 기존 통합 API(`MessageFacade`) 정상 작동
+  - 기존 UnifiedMessageRequest/Response 구조 유지
+  - 내부적으로 새로운 Use Case 활용하도록 업데이트
+- ✅ **데이터베이스**: H2 메모리 DB 및 JPA 엔티티 정상 작동
+- ✅ **컴파일**: 모든 Java 코드 오류 없이 컴파일 성공
+- ✅ **테스트 실행**: 기존 테스트 스위트 모두 통과
 
 ## 설정
 
